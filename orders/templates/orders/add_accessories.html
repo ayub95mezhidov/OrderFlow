@@ -1,0 +1,42 @@
+{% extends 'orders/base.html' %}
+
+{% block title %}OrderFlow - Новый заказ{% endblock %}
+
+{% block content %}
+<div class="container bg-white rounded shadow mt-4 p-4">
+    <h2 class="mb-4">{% if customer %} Комплектующие для {{ customer.full_name }}{% else %}Добавление заказа{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+            <!-- Основные поля -->
+
+            <div class="col-md-12">
+                <label for="{{ form.customer.id_for_label }}" class="form-label">Клиент</label>
+                    {{ form.customer }}
+            </div>
+            <div class="col-md-6">
+                <label for="{{ form.accessories.id_for_label }}" class="form-label">Комплектующий</label>
+                        {{ form.accessories }}
+            </div>
+            <div class="col-md-6">
+                <label for="{{ form.quantity.id_for_label }}" class="form-label">Кол-во</label>
+                {{ form.quantity }}
+            </div>
+        <div class="row">
+            <div class="col-12 col-md-6 col-lg-6 mt-4">
+                <button type="submit" class="btn btn-primary  w-100 w-md-auto m-lg-auto">Сохранить заказ</button>
+            </div>
+            <div class="col-12 col-md-6 col-lg-6 mt-4 ">
+                <a href="{% if customer %}{% url 'orders' customer.id %}{% else %}{% url 'customers' %}{% endif %}"
+                   class="btn btn-outline-secondary w-100 w-md-auto m-lg-auto">
+                    Отмена
+                </a>
+            </div>
+        </div>
+
+
+
+    </form>
+</div>
+
+{% endblock %}

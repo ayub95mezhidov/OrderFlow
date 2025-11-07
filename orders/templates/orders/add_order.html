@@ -1,0 +1,72 @@
+{% extends 'orders/base.html' %}
+
+{% block title %}OrderFlow - Новый заказ{% endblock %}
+
+{% block content %}
+<div class="container container bg-white rounded shadow mt-4 p-4">
+    <h2 class="mb-4">{% if customer %}Новый заказ для {{ customer.full_name }}{% else %}Добавление заказа{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+            <!-- Основные поля -->
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ form.customer.id_for_label }}" class="form-label">Клиент</label>
+                    {{ form.customer }}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.width.id_for_label }}" class="form-label">Ширина (м)</label>
+                        {{ form.width }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.length.id_for_label }}" class="form-label">Длина (м)</label>
+                        {{ form.length }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.fabric_size.id_for_label }}" class="form-label">Размер ткани</label>
+                    {{ form.fabric_size }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.ceiling_type.id_for_label }}" class="form-label">Тип потолка</label>
+                    {{ form.ceiling_type }}
+                </div>
+            </div>
+
+            <!-- Финансовые поля -->
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Статус</label>
+                    {{ form.status }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.payment_status.id_for_label }}" class="form-label">Статус платежа</label>
+                    {{ form.payment_status }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.photo.id_for_label }}" class="form-label">Фото</label>
+                    {{ form.photo }}
+                </div>
+            </div>
+        </div>
+    <div class="row">
+        <div class="col-12 col-md-6 col-lg-6 my-4">
+            <button type="submit" class="btn btn-primary me-2 w-100 w-md-auto m-lg-auto">Сохранить заказ</button>
+        </div>
+        <div class="col-12 col-md-6 col-lg-6 my-md-4">
+            <a href="{% if customer %}{% url 'orders' customer.id %}{% else %}{% url 'new_orders_all' %}{% endif %}"
+               class="btn btn-outline-secondary w-100 w-md-auto m-lg-auto">
+                Отмена
+            </a>
+        </div>
+    </div>
+    </form>
+</div>
+
+{% endblock %}

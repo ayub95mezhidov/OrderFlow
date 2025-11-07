@@ -1,0 +1,32 @@
+{% extends 'orders/base.html' %}
+
+{% block title %}OrderFlow - Ред. цену{% endblock %}
+
+{% block content %}
+<div class="container bg-white rounded shadow mt-4 p-4">
+    <div class="col text-center mb-4">
+      <h3>Редактировать цену для комплектующих</h3>
+    </div>
+    <form action="{% url 'price_accessories_update' price.id %}" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-6 mb-1">
+                <label for="{{ form.accessories.id_for_label }}" class="form-label">Название</label>
+                {{ form.accessories }}
+            </div>
+            <div class="col-6 mb-1">
+                <label for="{{ form.price.id_for_label }}" class="form-label">Цена</label>
+                {{ form.price }}
+            </div>
+            <div class="col-6 mb-1">
+                <input type="submit" value="Сохранить" class="btn btn-primary w-100 w-md-auto w-lg-auto mt-2">
+            </div>
+            <div class="col-6 my-2">
+                <a href="{% url 'price_settings' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

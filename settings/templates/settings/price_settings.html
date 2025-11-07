@@ -1,0 +1,114 @@
+{% extends 'orders/base.html' %}
+{% load static %}
+
+{% block title %}OrderFlow - Цены на товары{% endblock %}
+
+{% block content %}
+    <div class=" container bg-white rounded shadow p-4 mt-4">
+        <div class="row">
+            <div class="col-6">
+                <h2>Цены на полотна</h2>
+            </div>
+            <div class="col-6 text-end">
+                <a class="btn btn-primary" href="{% url 'price_create_canvases' %}">Создать цену</a>
+            </div>
+        </div>
+        {% if not prices %}
+            <div class="alert alert-info mb-0">Цены не найдены</div>
+        {% else %}
+        <div class="table-responsive my-3">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th width="40"></th>
+                        <th>Тип полотна</th>
+                        <th>Ширина полотна</th>
+                        <th>Цена/м²</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                     {% for price in prices %}
+                        <tr>
+                            <td class="text-center">
+                                <a class="btn-close btn-sm"
+                                   href="{% url 'price_ceiling_remove' price.id %}"
+                                   onclick="return confirm('Удалить этот цену?')">
+                                </a>
+                            </td>
+                            <td>
+                                {{ price.get_ceiling_type_display }}
+                            </td>
+                            <td>
+                                {{ price.get_fabric_size_display }}
+                            </td>
+                            <td>
+                                {{ price.price_m2 }} ₽
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'price_update' price.id %}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i> Редактировать
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="container bg-white rounded shadow p-4 mt-3">
+        <div class="row">
+            <div class="col-6">
+                <h2>Цены на комплектующие</h2>
+            </div>
+            <div class="col-6 text-end">
+                <a class="btn btn-primary" href="{% url 'price_accessories_create' %}">Создать цену</a>
+            </div>
+        </div>
+        {% if not prices_ac %}
+            <div class="alert alert-info mb-0">Цены не найдены</div>
+        {% else %}
+        <div class="table-responsive my-3">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th width="40"></th>
+                        <th>Комплектующие</th>
+                        <th>Цена</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                     {% for price in prices_ac %}
+                        <tr>
+                            <td class="text-center">
+                                <a class="btn-close btn-sm"
+                                   href="{% url 'price_accessories_remove' price.id %}"
+                                   onclick="return confirm('Удалить этот цену?')">
+                                </a>
+                            </td>
+                            <td>
+                                {{ price.accessories }}
+                            </td>
+                            <td>
+                                {{ price.price }} ₽
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'price_accessories_update' price.id %}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i> Редактировать
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

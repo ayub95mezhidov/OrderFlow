@@ -1,0 +1,44 @@
+{% extends 'orders/base.html' %}
+
+{% block title %}OrderFlow - Профиль{% endblock %}
+
+{% block content %}
+<div class="container bg-white rounded shadow p-4 mt-4">
+    <div class="text-center mb-5 mt-3"><h3>Профиль</h3></div>
+    <form action="{% url 'profile' %}" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="small mb-1" for="{{ form.first_name.id_for_label }}">Имя</label>
+                    {{ form.first_name }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="small mb-1" for="{{ form.last_name.id_for_label }}">Фамилия</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="small mb-1 mt-3" for="{{ form.username.id_for_label }}">Имя пользователя</label>
+                    {{ form.username }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="small mb-1 mt-3" for="{{ form.email.id_for_label }}">Адрес электронной почты</label>
+                    {{ form.email }}
+                </div>
+            </div>
+
+            <input class="col btn btn-primary mt-3 ms-2 mb-4" type="submit" value="Сохранить">
+            <a href="{% url 'logout' %}" class="col btn btn-danger mt-3 ms-2 me-3 mb-4">Выйти из учетной записи</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

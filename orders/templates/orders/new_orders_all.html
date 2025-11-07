@@ -1,0 +1,146 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<div class="main my-3 my-md-4">
+    <div class="container mt-3 mb-3">
+        <div class="row">
+            <div class="col-4 col-md-2 col-lg-1">
+                <h2 class="">Заказы</h2>
+            </div>
+
+            <div class="col-4 col-md-6 col-lg-1 lg-mt-1">
+                <div class="btn-group">
+                  <a type="button" class="btn  text-primary dropdown-toggle " data-bs-toggle="dropdown" aria-expanded="false">
+                    Фильтр
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'new_orders_all' %}">Новые</a></li>
+                    <li><a class="dropdown-item" href="{% url 'in_progress_orders' %}">В работе</a></li>
+                    <li><a class="dropdown-item" href="{% url 'completed_orders' %}">Завершенные</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'not_paid_orders' %}">Не оплаченные</a></li>
+                    <li><a class="dropdown-item" href="{% url 'paid_orders' %}">Оплаченные</a></li>
+                  </ul>
+                </div>
+            </div>
+
+
+            <div class=" col-4 col-md-4 col-lg-10 mt-1 text-end">
+                <a class="btn btn-primary btn-sm" href="{% url 'add_order' %}">
+                    Новый заказз
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Тело карточки -->
+    <div class="bg-light bg-gradient card border-0 ">
+        <div class="card-body p-0">
+            {% if not grouped_orders %}
+                <div class="container bg-white rounded p-4 ">
+                    <div class="alert alert-info m-3">Нет заказов</div>
+                </div>
+            {% else %}
+                {% for date, orders in grouped_orders.items %}
+                <div class="container bg-white rounded shadow p-4 mb-4 border-bottom pb-3 px-3">
+                    <!-- Заголовок с датой -->
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 mt-2 p-2 bg-light rounded">
+                        <h5 class="mb-0">{{ date }}</h5>
+                        <span class="badge bg-secondary">{{ orders|length }} заказ(ов)</span>
+                    </div>
+
+                    <!-- Таблица заказов -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="40"></th>
+                                    <th>Клиент</th>
+                                    <th>Ширина</th>
+                                    <th>Длина</th>
+                                    <th>м²</th>
+                                    <th class="d-none d-md-table-cell">Ткань</th>
+                                    <th>Тип</th>
+                                    <th>Цена</th>
+                                    <th>Фото</th>
+                                    <th>Сумма</th>
+                                    <th>Оплата</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td class="text-center">
+                                        <a class="btn-close btn-sm"
+                                           href="{% url 'orders_remove' order.id %}"
+                                           onclick="return confirm('Удалить этот заказ?')">
+                                        </a>
+                                    </td>
+                                    <td><a href="{% url 'orders' order.customer.id %}"  class="text-decoration-none">{{ order.customer.full_name }}</a></td>
+                                    <td>{{ order.width }} м</td>
+                                    <td>{{ order.length }} м</td>
+                                    <td>{{ order.square|floatformat:2 }}</td>
+                                    <td class="d-none d-md-table-cell">{{ order.get_fabric_size_display }}</td>
+                                    <td>{{ order.get_ceiling_type_display }}</td>
+                                    <td>{{ order.price }} ₽</td>
+                                    <td>
+                                        {% if order.photo %}
+                                        <a href="{{ order.photo.url }}"
+                                           target="_blank"
+                                           data-bs-toggle="tooltip"
+                                           title="Просмотреть фото"
+                                           class="d-inline-block">
+                                            <img src="{{ order.photo.url }}"
+                                                 width="40"
+                                                 height="40"
+                                                 class="img-thumbnail object-fit-cover">
+                                        </a>
+                                        {% else %}
+                                        —
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.total_sum|floatformat:2 }} ₽</td>
+                                    <td>
+                                        <select class="form-select form-select-sm text-white {% if order.payment_status == 'not paid' %} bg-danger {% else %} bg-success {% endif %}"
+                                            hx-post="{% url 'update_payment_status' order.id %}"
+                                            hx-trigger="change"
+                                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                            name="payment_status">
+                                            {% for value, label in order.PAYMENT_STATUS_CHOICES %}
+                                            <option value="{{ value }}" {% if order.payment_status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm text-white {% if order.status == 'new' %} bg-secondary{% elif order.status == 'in_progress' %} bg-warning {% else %} bg-success {% endif %}"
+                                            hx-post="{% url 'update_order_status' order.id %}"
+                                            hx-trigger="change"
+                                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                            name="status">
+                                            {% for value, label in order.STATUS_CHOICES %}
+                                            <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Итоговая сумма -->
+                    <div class="text-end mt-3">
+
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

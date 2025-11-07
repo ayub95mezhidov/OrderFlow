@@ -1,0 +1,54 @@
+{% extends 'users/base.html' %}
+
+{% block title %}OrderFlow - Авторизация{% endblock %}
+
+{% block content %}
+<main class="py-4">
+  <div class="container">
+    <div class="row justify-content-center">
+      <!-- Изменил col-lg-5 на col-md-8 col-lg-6 col-xl-5 для более плавного адаптивного поведения -->
+      <div class="col-md-8 col-lg-6 col-xl-5">
+        {% if messages or form.non_field_errors %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert"
+             style="margin-top: 50px;">
+            {% if messages %}
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            {% else %}
+                {{ form.non_field_errors }}
+            {% endif %}
+            <button type="button" class="btn-close btn-lg" data-dismiss="alert" aria-label="Close">
+        </div>
+        {% endif %}
+        <div class="card shadow-lg border-0 rounded-lg mt-3 mt-md-5">
+          <div class="card-header bg-primary text-white">
+            <h3 class="text-center my-2">Авторизация</h3>
+          </div>
+          <div class="card-body p-4 p-md-5">
+            <form action="{% url 'login' %}" method="post">
+              {% csrf_token %}
+              <div class="form-group mb-3">
+                <label class="form-label small mb-1" for="{{ form.username.id_for_label }}">Имя пользователя</label>
+                {{ form.username }}
+              </div>
+              <div class="form-group mb-3">
+                <!-- Исправил дублирующийся текст "Имя пользователя" на "Пароль" -->
+                <label class="form-label small mb-1" for="{{ form.password.id_for_label }}">Пароль</label>
+                {{ form.password }}
+              </div>
+              <div class="form-group d-flex flex-column flex-md-row align-items-center justify-content-between mt-4 mb-0">
+                <a class="small mb-2 mb-md-0" href="#">Забыли пароль?</a>
+                <button class="btn btn-primary px-4 py-2" type="submit">Авторизоваться</button>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer text-center py-3">
+            <div class="small"><a href="{% url 'registration' %}">Нужен аккаунт? Зарегистрируйся!</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
