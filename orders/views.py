@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
@@ -96,6 +97,14 @@ def orders(request, customer_id):
     orders_list = Order.objects.filter(user=request.user, customer=customer).order_by('-order_date')
     accessories_list = Accessories.objects.filter(user=request.user, customer=customer).order_by('-order_date')
 
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
+
     # Группируем заказы и комплектующие по дате
     grouped_orders = OrderedDict()
     total_amount = {}  # Общая сумма за каждую дату
@@ -169,7 +178,8 @@ def orders(request, customer_id):
         'customer': customer,
         'price_settings': price_settings,
         'debt': total_debt,
-        'accessories_with_debt': accessories_with_debt
+        'accessories_with_debt': accessories_with_debt,
+        'page_obj': page_obj,
     }
     return render(request, 'orders/orders.html', context)
 
@@ -177,6 +187,14 @@ def orders(request, customer_id):
 @login_required(login_url='/users/login/')
 def new_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, status='new').order_by('-order_date')
+
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
 
     # Группируем заказы по дате
     grouped_orders = OrderedDict()
@@ -196,7 +214,7 @@ def new_orders_all_customers(request):
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
         'price_settings': price_settings,
-
+        'page_obj': page_obj,
     }
 
     return render(request, 'orders/new_orders_all.html', context)
@@ -205,6 +223,14 @@ def new_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def in_progress_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, status='in_progress').order_by('-order_date')
+
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
 
     # Группируем заказы по дате
     grouped_orders = OrderedDict()
@@ -224,7 +250,7 @@ def in_progress_orders_all_customers(request):
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
         'price_settings': price_settings,
-
+        'page_obj': page_obj,
     }
 
     return render(request, 'orders/new_orders_all.html', context)
@@ -233,6 +259,14 @@ def in_progress_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def completed_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, status='completed').order_by('-order_date')
+
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
 
     # Группируем заказы по дате
     grouped_orders = OrderedDict()
@@ -252,7 +286,7 @@ def completed_orders_all_customers(request):
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
         'price_settings': price_settings,
-
+        'page_obj': page_obj,
     }
 
     return render(request, 'orders/new_orders_all.html', context)
@@ -261,6 +295,14 @@ def completed_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def not_paid_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, payment_status='not paid').order_by('-order_date')
+
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
 
     # Группируем заказы по дате
     grouped_orders = OrderedDict()
@@ -280,7 +322,7 @@ def not_paid_orders_all_customers(request):
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
         'price_settings': price_settings,
-
+        'page_obj': page_obj,
     }
 
     return render(request, 'orders/new_orders_all.html', context)
@@ -289,6 +331,14 @@ def not_paid_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def paid_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, payment_status='paid').order_by('-order_date')
+
+    # Пагинация
+    paginator = Paginator(orders_list, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Используем вместо orders_list только заказы текущей страницы
+    orders_list = page_obj.object_list
 
     # Группируем заказы по дате
     grouped_orders = OrderedDict()
@@ -308,7 +358,7 @@ def paid_orders_all_customers(request):
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
         'price_settings': price_settings,
-
+        'page_obj': page_obj,
     }
 
     return render(request, 'orders/new_orders_all.html', context)
