@@ -7,78 +7,93 @@ from django.views.generic import UpdateView
 from django.urls import reverse_lazy
 from .forms import GoalForm
 from django.contrib.auth.decorators import login_required
-from collections import defaultdict
 from django.db.models import Q
+import calendar
+from django.db.models import Sum
+
 
 @login_required(login_url='/users/login/')
 def stats_dashboard(request):
     today = timezone.now().date()
-    month = today.month
-    year = today.year
 
-    # Получаем параметры для навигации по месяцам
-    selected_year = request.GET.get('year', year)
-    selected_month = request.GET.get('month', month)
+    # Получаем параметры для навигации
+    selected_year = request.GET.get('year', today.year)
+    selected_month = request.GET.get('month', today.month)
 
     try:
         selected_year = int(selected_year)
         selected_month = int(selected_month)
     except (ValueError, TypeError):
-        selected_year = year
-        selected_month = month
+        selected_year = today.year
+        selected_month = today.month
 
+    # Получаем цели пользователя
     goals = GoalSettings.objects.filter(user=request.user).first()
-    if goals is not None:
-        try:
 
-            # Получаем или создаем статистику с дефолтными значениями
-            daily_stats, _ = DailyStats.objects.get_or_create(
-                user=request.user,
-                date=today,
-                defaults={'daily_goal': goals.daily_goal, 'completed_m2': Decimal('0')}
-            )
+    # Инициализируем переменные
+    daily_stats = None
+    monthly_stats = None
 
-            monthly_stats, _ = MonthlyStats.objects.get_or_create(
-                user=request.user,
-                year=year,
-                month=month,
-                defaults={'monthly_goal': goals.monthly_goal, 'completed_m2': Decimal('0')}
-            )
+    if goals:
+        # Получаем или создаем статистику за сегодня
+        daily_stats, _ = DailyStats.objects.get_or_create(
+            user=request.user,
+            date=today,
+            defaults={
+                'daily_goal': goals.daily_goal,
+                'completed_m2': Decimal('0'),
+                'count_completed_orders': 0
+            }
+        )
 
+        # Получаем или создаем статистику за текущий месяц
+        monthly_stats, _ = MonthlyStats.objects.get_or_create(
+            user=request.user,
+            year=today.year,
+            month=today.month,
+            defaults={
+                'monthly_goal': goals.monthly_goal,
+                'completed_m2': Decimal('0'),
+                'count_completed_orders': 0
+            }
+        )
 
+    # ФИКС: Правильная фильтрация по выбранному месяцу
+    # Определяем первый и последний день выбранного месяца
+    _, last_day = calendar.monthrange(selected_year, selected_month)
+    start_date = timezone.datetime(selected_year, selected_month, 1).date()
+    end_date = timezone.datetime(selected_year, selected_month, last_day).date()
 
+    # Получаем данные ТОЛЬКО для выбранного месяца
+    selected_month_stats = DailyStats.objects.filter(
+        user=request.user,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by('-date')
 
-        except GoalSettings.DoesNotExist:
-            daily_stats = 'Нет цели дня'
-            monthly_stats = 'Нет цели месяца'
-    else:
-        daily_stats = 'Нет цели дня'
-        monthly_stats = 'Нет цели месяца'
+    # Вычисляем агрегированные данные для выбранного месяца
+    selected_month_data = None
+    if selected_month_stats.exists():
+        aggregated = selected_month_stats.aggregate(
+            total_completed=Sum('completed_m2'),
+            total_goal=Sum('daily_goal'),
+            total_orders=Sum('count_completed_orders')
+        )
 
-    daily_stats_all = DailyStats.objects.filter(user=request.user).order_by('-date')
-    monthly_stats_all = MonthlyStats.objects.filter(user=request.user).order_by('-year', '-month')
-
-    # Группируем дневную статистику по месяцам
-    daily_stats_by_month = defaultdict(list)
-    for stat in daily_stats_all:
-        month_key = f"{stat.date.year}-{stat.date.month:02d}"
-        daily_stats_by_month[month_key].append(stat)
-
-    # Сортируем месяцы по убыванию
-    sorted_month_keys = sorted(daily_stats_by_month.keys(), reverse=True)
-
-    # Получаем статистику для выбранного месяца
-    selected_month_key = f"{selected_year}-{selected_month:02d}"
-    selected_month_stats = daily_stats_by_month.get(selected_month_key, [])
-
-    # Вычисляем итоги для выбранного месяца
-    if selected_month_stats:
-        total_completed = sum(float(stat.completed_m2) for stat in selected_month_stats)
-        total_goal = sum(float(stat.daily_goal) for stat in selected_month_stats)
-        total_orders = sum(float(stat.count_completed_orders) for stat in selected_month_stats)
+        total_completed = float(aggregated['total_completed'] or 0)
+        total_goal = float(aggregated['total_goal'] or 0)
+        total_orders = float(aggregated['total_orders'] or 0)
 
         progress_percentage = (total_completed / total_goal * 100) if total_goal > 0 else 0
         avg_per_order = total_completed / total_orders if total_orders > 0 else 0
+
+        # Правильное название месяца на русском
+        month_names = {
+            1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель',
+            5: 'Май', 6: 'Июнь', 7: 'Июль', 8: 'Август',
+            9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь'
+        }
+        month_name = f"{month_names[selected_month]} {selected_year}"
 
         selected_month_data = {
             'stats_list': selected_month_stats,
@@ -87,28 +102,33 @@ def stats_dashboard(request):
             'total_orders': total_orders,
             'progress_percentage': progress_percentage,
             'avg_per_order': avg_per_order,
-            'month_name': selected_month_stats[0].date.strftime("%B %Y"),
-            'days_count': len(selected_month_stats)
+            'month_name': month_name,
+            'days_count': selected_month_stats.count(),
+            'start_date': start_date,
+            'end_date': end_date
         }
 
-
-    # Вычисляем навигацию по месяцам
+    # Навигация по месяцам с проверкой существования данных
     prev_month, prev_year = get_previous_month(selected_year, selected_month)
     next_month, next_year = get_next_month(selected_year, selected_month)
 
-    # Проверяем, есть ли данные для соседних месяцев
-    prev_month_key = f"{prev_year}-{prev_month:02d}"
-    next_month_key = f"{next_year}-{next_month:02d}"
+    # проверка существования данных для соседних месяцев
+    prev_has_data = DailyStats.objects.filter(
+        user=request.user,
+        date__year=prev_year,
+        date__month=prev_month
+    ).exists()
 
-    has_prev_month = prev_month_key in daily_stats_by_month
-    has_next_month = next_month_key in daily_stats_by_month
+    next_has_data = DailyStats.objects.filter(
+        user=request.user,
+        date__year=next_year,
+        date__month=next_month
+    ).exists()
 
     context = {
         'daily_stats': daily_stats,
         'monthly_stats': monthly_stats,
         'today': today,
-        'daily_stats_all': daily_stats_all,
-        'monthly_stats_all': monthly_stats_all,
         'selected_month_data': selected_month_data,
         'selected_year': selected_year,
         'selected_month': selected_month,
@@ -116,11 +136,12 @@ def stats_dashboard(request):
         'prev_month': prev_month,
         'next_year': next_year,
         'next_month': next_month,
-        'has_prev_month': has_prev_month,
-        'has_next_month': has_next_month,
-        'available_months': sorted_month_keys,  # Все доступные месяцы для информации
+        'has_prev_month': prev_has_data,
+        'has_next_month': next_has_data,
+        'has_goals': goals is not None,
     }
     return render(request, 'stats/dashboard.html', context)
+
 
 def get_previous_month(year, month):
     """Возвращает предыдущий месяц"""
@@ -128,6 +149,7 @@ def get_previous_month(year, month):
         return 12, year - 1
     else:
         return month - 1, year
+
 
 def get_next_month(year, month):
     """Возвращает следующий месяц"""
