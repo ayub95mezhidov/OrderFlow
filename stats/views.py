@@ -58,7 +58,6 @@ def stats_dashboard(request):
             }
         )
 
-    # ФИКС: Правильная фильтрация по выбранному месяцу
     # Определяем первый и последний день выбранного месяца
     _, last_day = calendar.monthrange(selected_year, selected_month)
     start_date = timezone.datetime(selected_year, selected_month, 1).date()

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'stats',
     'settings',
     'users',
+    'finance',
 ]
 
 MIDDLEWARE = [
