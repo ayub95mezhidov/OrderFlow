@@ -1,5 +1,6 @@
 {% extends 'orders/base.html' %}
 
 {% block content %}
-<div>fjjdjdkf</div>
+<div>Cash - {{ wallet.cash|floatformat:2 }} ₽</div>
+<div>Debt - {{ debt.debt|floatformat:2 }} ₽</div>
 {% endblock %}
