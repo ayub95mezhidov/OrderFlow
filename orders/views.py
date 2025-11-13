@@ -16,6 +16,7 @@ from collections import OrderedDict
 from .models import Order, Customer, Accessories
 from .forms import CustomerForm, AddOrderForm, CustomerSearchForm, AccessoriesForm
 from settings.models import PriceSettings, PriceAccessories
+from finance.models import Wallet, Debt
 
 # Список клиентов
 class CustomerListView(LoginRequiredMixin, ListView):
@@ -395,13 +396,18 @@ def update_order_status(request, order_id):
 @require_POST
 def update_payment_status(request, order_id):
     order = Order.objects.get(id=order_id)
+    wallet = Wallet.objects.filter(user=request.user).last()
     new_status = request.POST.get('payment_status')
 
     if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
         order.payment_status = new_status
         order.save()
+        # Добавляет к кошельку сумму заказа
+        if new_status == 'paid':
+            wallet.cash += order.total_sum
+            wallet.save()
 
-        # Пересчитываем долг клиента
+        # Подсчитывает долг клиента
         customer = order.customer
         debt = calculate_customer_debt(customer)
 
@@ -419,12 +425,17 @@ def update_payment_status(request, order_id):
 # Обнавление статуса платежа комплектующих
 def update_payment_status_accessories(request, accessories_id):
     accessories = Accessories.objects.get(id=accessories_id)
+    wallet = Wallet.objects.filter(user=request.user).last()
     new_status = request.POST.get('payment_status_accessories')
 
     if accessories_id:
         if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
             accessories.payment_status = new_status
             accessories.save()
+            # Добавляет к кошельку сумму заказа
+            if new_status == 'paid':
+                wallet.cash += accessories.accessories_total
+                wallet.save()
 
             # Пересчитываем долг клиента
             customer = accessories.customer
@@ -456,12 +467,14 @@ def calculate_customer_debt(customer):
         total += accessories.accessories_total
     return total
 
-
+# Создает заказ внутри клиента
 @login_required
 def add_order(request, customer_id=None):
     customer = None
     if customer_id:
         customer = get_object_or_404(Customer, id=customer_id)
+
+    debt = Debt.objects.filter(user=request.user)
 
     if request.method == 'POST':
         form = AddOrderForm(request.user, request.POST, request.FILES)
@@ -471,6 +484,10 @@ def add_order(request, customer_id=None):
                 order.user = request.user
                 order.customer = customer
             order.save()
+            # Присваиваем сумму заказа(total_sum) debt и сохраняем
+            debt = debt.last()
+            debt.debt += order.total_sum
+            debt.save()
             return redirect('orders', customer_id=order.customer.id)
     else:
         initial = {'customer': customer} if customer else {}
@@ -491,6 +508,8 @@ def add_order_for_orders(request, customer_id=None):
     if customer_id:
         customer = get_object_or_404(Customer, id=customer_id, user=request.user)
 
+    debt = Debt.objects.filter(user=request.user)
+
     if request.method == 'POST':
         form = AddOrderForm(request.user, request.POST, request.FILES)
         if form.is_valid():
@@ -506,6 +525,10 @@ def add_order_for_orders(request, customer_id=None):
 
             if order.customer:  # Проверяем, что клиент установлен
                 order.save()
+                # Присваиваем сумму заказа(total_sum) debt и сохраняем
+                debt = debt.last()
+                debt.debt += order.total_sum
+                debt.save()
                 return redirect('new_orders_all')
             else:
                 # Если клиент не выбран, добавляем ошибку
@@ -531,6 +554,8 @@ def add_order_accessories(request, customer_id=None):
     if customer_id:
         customer = get_object_or_404(Customer, id=customer_id)
 
+    debt = Debt.objects.filter(user=request.user)
+
     if request.method == 'POST':
         form = AccessoriesForm(request.user, request.POST)
         if form.is_valid():
@@ -539,6 +564,10 @@ def add_order_accessories(request, customer_id=None):
                 order.user = request.user
                 order.customer = customer
             order.save()
+            # Присваиваем сумму заказа(total_sum) debt и сохраняем
+            debt = debt.last()
+            debt.debt += order.accessories_total
+            debt.save()
             return redirect('orders', customer_id=order.customer.id)
     else:
         initial = {'customer': customer} if customer else {}
