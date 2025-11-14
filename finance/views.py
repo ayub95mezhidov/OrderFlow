@@ -6,27 +6,22 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import UpdateView
 
 from .forms import WalletForm, DebtForm
-from .models import Wallet, Debt
+from .models import Wallet, Debt, Income, Expenses
 from orders.models import Order, Accessories
 
 def finance(request):
-    wallet = Wallet.objects.filter(user=request.user)
-    debt = Debt.objects.filter(user=request.user)
-    orders = Order.objects.filter(user=request.user)
+    # Получает или создает запись кошелька и долга для текушего пользователя
+    wallet = Wallet.objects.get_or_create(user=request.user)
+    debt = Debt.objects.get_or_create(user=request.user)
 
-    # Проверяет и создает новый объект
-    if len(wallet) == 0 and len(debt) == 0 :
-        wallet = Wallet.objects.create(user=request.user)
-        debt = Debt.objects.create(user=request.user)
-
-
-    wallet = wallet.last()
-    debt = debt.last()
-
+    income = Income.objects.filter(user=request.user)
+    expenses = Expenses.objects.filter(user=request.user)
 
     context = {
-        'wallet': wallet,
-        'debt': debt
+        'wallet': Wallet.objects.filter(user=request.user).last(),
+        'debt': Debt.objects.filter(user=request.user).last(),
+        'income': income,
+        'expenses': expenses
     }
 
     return render(request, 'finance/finance.html', context)

@@ -16,6 +16,28 @@
         </div>
     </div>
 
+    <div class="row mt-5 mb-5">
+        <div class="col-6">
+            <h2 class="text-center">Доходы</h2>
+            {% for inc in income %}
+                <div class="row">
+                    <h5 class="col-4 text-center">{{ inc.title.title }}</h5>
+                    <h5 class="col-4 text-center">{{ inc.total_sum}}</h5>
+                    <h5 class="col-4 text-center">{{ inc.date.date}}</h5>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-6">
+            <h2 class="text-center">Расходы</h2>
+            {% for ex in expenses %}
+                <div class="row">
+                    <h5 class="col-4 text-center">{{ ex.title.title }}</h5>
+                    <h5 class="col-4 text-center">{{ ex.total_sum}}</h5>
+                    <h5 class="col-4 text-center">{{ ex.date.date}}</h5>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 
 </div>
 
