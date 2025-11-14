@@ -9,10 +9,10 @@
     </div>
     <div class="row">
         <div class="col-6  text-success">
-            <h4>Кошелек - {{ wallet.cash|floatformat:2 }} ₽</h4>
+            <h4>Кошелек - <a href="{% url 'update_wallet' %}">{{ wallet.cash|floatformat:2 }} ₽</a></h4>
         </div>
         <div class="col-6 text-end text-danger">
-            <h4>Долг - {{ debt.debt|floatformat:2 }} ₽</h4>
+            <h4>Вам должны - <a href="{% url 'update_debt' %}">{{ debt.debt|floatformat:2 }} ₽</a></h4>
         </div>
     </div>
 

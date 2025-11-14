@@ -1,0 +1,25 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<div class="container bg-white rounded shadow p-4 my-4">
+    <form action="{% url 'update_wallet' %}" method="post">
+        {% csrf_token %}
+        <h2>Кошелек</h2>
+        <div class="row g-3 mb-3">
+            <div class="col-12">
+                <label for="{{ form.cash.id_for_label }}" class="form-label"></label>
+                {{ form.cash }}
+            </div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <input type="submit" value="Сохранить" class="btn btn-primary w-100 w-md-auto">
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'finance' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
