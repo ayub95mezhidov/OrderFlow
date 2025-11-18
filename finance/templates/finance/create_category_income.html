@@ -2,20 +2,17 @@
 
 {% block content %}
 <div class="container bg-white rounded shadow p-4 my-4">
-    <form action="{% url 'create_income' %}" method="post">
+    <form action="{% url 'create_category_income' %}" method="post">
         {% csrf_token %}
-        <h2>Доход</h2>
+        <h2>Создать категорию для доходов</h2>
         <div class="row g-3 mb-3">
             <div class="col-12">
                 <label for="{{ form.title.id_for_label }}" class=""></label>
                 {{ form.title }}
             </div>
             <div class="col-12">
-                <label for="{{ form.total_sum.id_for_label }}" class="form-label"></label>
-                {{ form.total_sum }}
-            </div>
-            <div class="col-12">
-                <a class="" href="{% url 'create_category_income' %}">Создать категорию</a>
+                <label for="{{ form.color.id_for_label }}" class=""></label>
+                {{ form.color }}
             </div>
         </div>
         <div class="row g-3 mb-4">
@@ -23,7 +20,7 @@
               <input type="submit" value="Сохранить" class="btn btn-primary w-100 w-md-auto">
             </div>
             <div class="col-md-6">
-              <a href="{% url 'finance' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
+              <a href="{% url 'create_income' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
             </div>
         </div>
     </form>

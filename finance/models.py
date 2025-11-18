@@ -17,7 +17,7 @@ class Debt(models.Model):
     def __str__(self):
         return f'{self.user} - {self.debt}'
 
-class NameIncome(models.Model):
+class CategoryIncome(models.Model):
     COLOR_CHOICES = [
         ('Красный', 'Red'),
         ('Синий', 'Blue'),
@@ -39,7 +39,7 @@ class NameIncome(models.Model):
     def __str__(self):
         return f'{self.user} - {self.title}'
 
-class NameExpenses(models.Model):
+class CategoryExpenses(models.Model):
     COLOR_CHOICES = [
         ('Красный', 'Red'),
         ('Синий', 'Blue'),
@@ -63,7 +63,7 @@ class NameExpenses(models.Model):
 
 class Income(models.Model):
     total_sum = models.DecimalField(max_digits=10, decimal_places=2)
-    title = ForeignKey(to=NameIncome, on_delete=CASCADE)
+    title = ForeignKey(to=CategoryIncome, on_delete=CASCADE)
     date = models.DateTimeField(blank=False)
     user = models.ForeignKey(to=User, on_delete=CASCADE)
 
@@ -73,7 +73,7 @@ class Income(models.Model):
 
 class Expenses(models.Model):
     total_sum = models.DecimalField(max_digits=10, decimal_places=2)
-    title = ForeignKey(to=NameExpenses, on_delete=CASCADE)
+    title = ForeignKey(to=CategoryExpenses, on_delete=CASCADE)
     date = models.DateTimeField(blank=False)
     user = models.ForeignKey(to=User, on_delete=CASCADE)
 

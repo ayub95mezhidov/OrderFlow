@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Wallet, Debt, Income, Expenses, NameIncome, NameExpenses
+from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses
 
 class WalletForm(forms.ModelForm):
     class Meta:
@@ -50,9 +50,9 @@ class ExpensesForm(forms.ModelForm):
             })
         }
 
-class NameIncomeForm(forms.ModelForm):
+class CategoryIncomeForm(forms.ModelForm):
     class Meta:
-        model = NameIncome
+        model = CategoryIncome
         fields = ('title', 'color')
         widgets = {
             'title': forms.TextInput(attrs={
@@ -64,9 +64,9 @@ class NameIncomeForm(forms.ModelForm):
             })
         }
 
-class NameExpensesForm(forms.ModelForm):
+class CategoryExpensesForm(forms.ModelForm):
     class Meta:
-        model = NameExpenses
+        model = CategoryExpenses
         fields = ('title', 'color')
         widgets = {
             'title': forms.TextInput(attrs={

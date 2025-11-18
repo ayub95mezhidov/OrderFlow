@@ -5,8 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import UpdateView, CreateView
 from django.utils import timezone
 
-from .forms import WalletForm, DebtForm, IncomeForm, ExpensesForm
-from .models import Wallet, Debt, Income, Expenses
+from .forms import WalletForm, DebtForm, IncomeForm, ExpensesForm, CategoryIncomeForm, CategoryExpensesForm
+from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses
 from orders.models import Order, Accessories
 
 def finance(request):
@@ -119,4 +119,32 @@ class ExpensesCreateView(CreateView, LoginRequiredMixin):
             print(ex)
 
         return super().form_valid(form)
+    
+class CategoryIncomeCreateView(CreateView, LoginRequiredMixin):
+    login_url = '/users/login/'
+    model = CategoryIncome
+    form_class = CategoryIncomeForm
+    template_name = 'finance/create_category_income.html'
+    success_url = reverse_lazy('create_income')
+    
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        
+        return super().form_valid(form)
+
+
+class CategoryExpensesCreateView(CreateView, LoginRequiredMixin):
+    login_url = '/users/login/'
+    model = CategoryExpenses
+    form_class = CategoryExpensesForm
+    template_name = 'finance/create_category_expenses.html'
+    success_url = reverse_lazy('create_expenses')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+
+        return super().form_valid(form)
+
 

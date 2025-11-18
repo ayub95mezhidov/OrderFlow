@@ -409,14 +409,25 @@ def update_payment_status(request, order_id):
             wallet.cash += order.total_sum
             wallet.save()
 
-            from finance.models import NameIncome
-            obj, create = NameIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
-            income = Income.objects.create(
+            from finance.models import CategoryIncome
+            obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
+            Income.objects.create(
                 user=request.user,
                 total_sum=order.total_sum,
                 title=obj,
                 date=timezone.now().date(),
             )
+        else:
+            # Если статус платежа меняется на "Не оплачено" то с "Кошелка" отнимаеся сумма заказа
+            wallet.cash -= order.total_sum
+            wallet.save()
+
+            # Из истории дохода мы вычеслеям сумму заказа
+            from finance.models import CategoryIncome
+            obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
+            income = Income.objects.filter(user=request.user, title=obj).last()
+            income.total_sum -= order.total_sum
+            income.save()
 
         # Подсчитывает долг клиента
         customer = order.customer
@@ -447,6 +458,26 @@ def update_payment_status_accessories(request, accessories_id):
             if new_status == 'paid':
                 wallet.cash += accessories.accessories_total
                 wallet.save()
+
+                from finance.models import CategoryIncome
+                obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Комплектующие', color='Красный')
+                Income.objects.create(
+                    user=request.user,
+                    total_sum=accessories.accessories_total,
+                    title=obj,
+                    date=timezone.now().date(),
+                )
+            else:
+                # Если статус платежа меняется на "Не оплачено" то с "Кошелка" отнимаеся сумма заказа
+                wallet.cash -= accessories.accessories_total
+                wallet.save()
+
+                # Из истории дохода мы вычеслеям сумму заказа
+                from finance.models import CategoryIncome
+                obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Комплектующие', color='Красный')
+                income = Income.objects.filter(user=request.user, title=obj).last()
+                income.total_sum -= accessories.accessories_total
+                income.save()
 
             # Пересчитываем долг клиента
             customer = accessories.customer
