@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
+from django.template.defaultfilters import title
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from decimal import Decimal
@@ -16,7 +17,7 @@ from collections import OrderedDict
 from .models import Order, Customer, Accessories
 from .forms import CustomerForm, AddOrderForm, CustomerSearchForm, AccessoriesForm
 from settings.models import PriceSettings, PriceAccessories
-from finance.models import Wallet, Debt
+from finance.models import Wallet, Debt, Income, Expenses
 
 # Список клиентов
 class CustomerListView(LoginRequiredMixin, ListView):
@@ -397,6 +398,7 @@ def update_order_status(request, order_id):
 def update_payment_status(request, order_id):
     order = Order.objects.get(id=order_id)
     wallet = Wallet.objects.filter(user=request.user).last()
+
     new_status = request.POST.get('payment_status')
 
     if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
@@ -406,6 +408,15 @@ def update_payment_status(request, order_id):
         if new_status == 'paid':
             wallet.cash += order.total_sum
             wallet.save()
+
+            from finance.models import NameIncome
+            obj, create = NameIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
+            income = Income.objects.create(
+                user=request.user,
+                total_sum=order.total_sum,
+                title=obj,
+                date=timezone.now().date(),
+            )
 
         # Подсчитывает долг клиента
         customer = order.customer

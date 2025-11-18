@@ -15,30 +15,44 @@
             <h4>Вам должны - <a href="{% url 'update_debt' %}">{{ debt.debt|floatformat:2 }} ₽</a></h4>
         </div>
     </div>
+</div>
 
-    <div class="row mt-5 mb-5">
+<div class="container bg-white rounded shadow p-2 my-4">
+    <div class="row mt-3 mb-5">
         <div class="col-6">
-            <h2 class="text-center">Доходы</h2>
+            <div class="row text-center">
+                <h2 class="col-6">Доходы</h2>
+                <h2 class="col-6">
+                    <a class="btn btn-primary" href="{% url 'create_income' %}">+</a>
+                </h2>
+            </div>
+
             {% for inc in income %}
                 <div class="row">
                     <h5 class="col-4 text-center">{{ inc.title.title }}</h5>
-                    <h5 class="col-4 text-center">{{ inc.total_sum}}</h5>
+                    <h5 class="col-4 text-center">{{ inc.total_sum}} ₽</h5>
                     <h5 class="col-4 text-center">{{ inc.date.date}}</h5>
                 </div>
             {% endfor %}
         </div>
         <div class="col-6">
-            <h2 class="text-center">Расходы</h2>
+            <div class="row text-center">
+                <h2 class="col-6">Расходы</h2>
+                <h2 class="col-6">
+                    <a class="btn btn-primary" href="{% url 'create_expenses' %}">+</a>
+                </h2>
+            </div>
+
             {% for ex in expenses %}
                 <div class="row">
                     <h5 class="col-4 text-center">{{ ex.title.title }}</h5>
-                    <h5 class="col-4 text-center">{{ ex.total_sum}}</h5>
+                    <h5 class="col-4 text-center">{{ ex.total_sum}} ₽</h5>
                     <h5 class="col-4 text-center">{{ ex.date.date}}</h5>
                 </div>
             {% endfor %}
         </div>
     </div>
-
 </div>
+
 
 {% endblock %}
