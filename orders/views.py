@@ -398,16 +398,19 @@ def update_order_status(request, order_id):
 def update_payment_status(request, order_id):
     order = Order.objects.get(id=order_id)
     wallet = Wallet.objects.filter(user=request.user).last()
+    debt = Debt.objects.filter(user=request.user).last()
 
     new_status = request.POST.get('payment_status')
 
     if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
         order.payment_status = new_status
         order.save()
-        # Добавляет к кошельку сумму заказа
+        # Добавляет к кошельку сумму заказа и отнимает от долга
         if new_status == 'paid':
             wallet.cash += order.total_sum
             wallet.save()
+            debt.debt -= order.total_sum
+            debt.save()
 
             from finance.models import CategoryIncome
             obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
@@ -421,6 +424,8 @@ def update_payment_status(request, order_id):
             # Если статус платежа меняется на "Не оплачено" то с "Кошелка" отнимаеся сумма заказа
             wallet.cash -= order.total_sum
             wallet.save()
+            debt.debt += order.total_sum
+            debt.save()
 
             # Из истории дохода мы вычеслеям сумму заказа
             from finance.models import CategoryIncome
