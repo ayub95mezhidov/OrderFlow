@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
@@ -9,6 +11,7 @@ from django.db.models import Sum
 
 from calendar import monthrange
 from datetime import timedelta
+import json
 
 from .forms import WalletForm, DebtForm, IncomeForm, ExpensesForm, CategoryIncomeForm, CategoryExpensesForm
 from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses
@@ -25,11 +28,55 @@ def finance(request):
 
     today = timezone.now().date()
 
+    incomes_grouped = []
+    expenses_grouped = []
+    income_labels = []
+    income_values = []
+    expense_labels = []
+    expense_values = []
+
+    COLOR_MAP = {
+        "Красный": "#f44336",
+        "Синий": "#2196f3",
+        "Зеленый": "#4caf50",
+        "Желтый": "#ffeb3b",
+        "Оранжевый": "#ff9800",
+        "Фиолетовый": "#9c27b0",
+        "Розовый": "#e91e63",
+        "Коричневый": "#795548",
+        "Черный": "#000000",
+        "Белый": "#ffffff",
+        "Серый": "#9e9e9e",
+    }
+
     # ---------- ДЕНЬ ----------
     if period == "day":
         target_day = today + timedelta(days=offset)
         incomes = Income.objects.filter(date__date=target_day)
         expenses = Expenses.objects.filter(date__date=target_day)
+
+        # Группировка доходов по категориям
+        incomes_grouped = (
+            incomes.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Группировка расходов по категориям
+        expenses_grouped = (
+            expenses.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Данные для графиков
+        income_labels = json.dumps([i["title__title"] for i in incomes_grouped])
+        income_values = json.dumps([float(i["total"]) for i in incomes_grouped])
+        income_colors = json.dumps([COLOR_MAP[i["title__color"]] for i in incomes_grouped])
+
+        expense_labels = json.dumps([i["title__title"] for i in expenses_grouped])
+        expense_values = json.dumps([float(i["total"]) for i in expenses_grouped])
+        expense_colors = json.dumps([COLOR_MAP[e["title__color"]] for e in expenses_grouped])
 
         period_title = target_day.strftime("%d.%m.%Y")
 
@@ -42,6 +89,29 @@ def finance(request):
 
         incomes = Income.objects.filter(date__date__range=[monday, sunday])
         expenses = Expenses.objects.filter(date__date__range=[monday, sunday])
+
+        # Группировка доходов по категориям
+        incomes_grouped = (
+            incomes.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Группировка расходов по категориям
+        expenses_grouped = (
+            expenses.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Данные для графиков
+        income_labels = json.dumps([i["title__title"] for i in incomes_grouped])
+        income_values = json.dumps([float(i["total"]) for i in incomes_grouped])
+        income_colors = json.dumps([COLOR_MAP[i["title__color"]] for i in incomes_grouped])
+
+        expense_labels = json.dumps([i["title__title"] for i in expenses_grouped])
+        expense_values = json.dumps([float(i["total"]) for i in expenses_grouped])
+        expense_colors = json.dumps([COLOR_MAP[e["title__color"]] for e in expenses_grouped])
 
         period_title = f"{monday.strftime('%d.%m')} — {sunday.strftime('%d.%m')}"
 
@@ -61,15 +131,41 @@ def finance(request):
         first_day = timezone.datetime(year, month, 1).date()
         last_day = timezone.datetime(year, month, monthrange(year, month)[1]).date()
 
+        period_title = f"{first_day.strftime('%B %Y')}"
+
         incomes = Income.objects.filter(date__date__range=[first_day, last_day])
         expenses = Expenses.objects.filter(date__date__range=[first_day, last_day])
 
-        period_title = f"{first_day.strftime('%B %Y')}"
+        # Группировка доходов по категориям
+        incomes_grouped = (
+            incomes.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Группировка расходов по категориям
+        expenses_grouped = (
+            expenses.values("title__title", "title__color")
+            .annotate(total=Sum("total_sum"))
+            .order_by("title__title")
+        )
+
+        # Данные для графиков
+        income_labels = json.dumps([i["title__title"] for i in incomes_grouped])
+        income_values = json.dumps([float(i["total"]) for i in incomes_grouped])
+        income_colors = json.dumps([COLOR_MAP[i["title__color"]] for i in incomes_grouped])
+
+        expense_labels = json.dumps([i["title__title"] for i in expenses_grouped])
+        expense_values = json.dumps([float(i["total"]) for i in expenses_grouped])
+        expense_colors = json.dumps([COLOR_MAP[e["title__color"]] for e in expenses_grouped])
+
 
     # Итоги
     total_income = incomes.aggregate(Sum("total_sum"))["total_sum__sum"] or 0
     total_expenses = expenses.aggregate(Sum("total_sum"))["total_sum__sum"] or 0
     balance = total_income - total_expenses
+
+
 
     context = {
         'wallet': Wallet.objects.filter(user=request.user).last(),
@@ -77,11 +173,17 @@ def finance(request):
         "period": period,
         "offset": offset,
         "period_title": period_title,
-        "incomes": incomes,
-        "expenses": expenses,
+        "incomes_grouped": incomes_grouped,
+        "expenses_grouped": expenses_grouped,
         "total_income": total_income,
         "total_expenses": total_expenses,
         "balance": balance,
+        "income_labels": income_labels,
+        "income_values": income_values,
+        "expense_labels": expense_labels,
+        "expense_values": expense_values,
+        "income_colors": income_colors,
+        "expense_colors": expense_colors,
     }
 
     return render(request, "finance/finance.html", context)
