@@ -24,6 +24,7 @@
                         <th>Тип полотна</th>
                         <th>Ширина полотна</th>
                         <th>Цена/м²</th>
+                        <th>Наценка/м²</th>
                         <th>Действие</th>
                     </tr>
                 </thead>
@@ -44,6 +45,9 @@
                             </td>
                             <td>
                                 {{ price.price_m2 }} ₽
+                            </td>
+                            <td>
+                                {{ price.markup }} ₽
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -79,6 +83,7 @@
                         <th width="40"></th>
                         <th>Комплектующие</th>
                         <th>Цена</th>
+                        <th>Наценка</th>
                         <th>Действие</th>
                     </tr>
                 </thead>
@@ -96,6 +101,9 @@
                             </td>
                             <td>
                                 {{ price.price }} ₽
+                            </td>
+                            <td>
+                                {{ price.markup }} ₽
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">

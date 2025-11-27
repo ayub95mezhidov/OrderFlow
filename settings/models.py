@@ -33,13 +33,23 @@ class PriceSettings(models.Model):
         choices=CEILING_TYPE_CHOICES,
         verbose_name="Тип потолка",
     )
-    price_m2 = models.DecimalField(
+    bought = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        verbose_name="Цена за м²",
+        default=0,
+        verbose_name="Купил за м²",
     )
-
+    markup = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Наценка за м²",
+    )
     user = ForeignKey(to=User, on_delete=CASCADE)
+
+    @property
+    def price_m2(self):
+        return self.bought + self.markup
 
     class Meta:
         unique_together = ('fabric_size', 'ceiling_type', 'user')
@@ -52,8 +62,14 @@ class PriceSettings(models.Model):
 
 class PriceAccessories(models.Model):
     accessories = models.CharField(max_length=256, verbose_name='Комплектующий')
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена')
+    bought = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Купил за')
+    markup = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Наценка",)
     user = ForeignKey(to=User, on_delete=CASCADE, related_name='price_accessories')  # добавляем уникальное related_name
+
+    @property
+    def price(self):
+        return self.bought + self.markup
+
 
     class Meta:
         verbose_name = "Настройка цены комплектующих"

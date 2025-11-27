@@ -4,7 +4,7 @@ from .models import PriceSettings, PriceAccessories
 class PriceSettingsForms(forms.ModelForm):
     class Meta:
         model = PriceSettings
-        fields = ('fabric_size', 'ceiling_type', 'price_m2')
+        fields = ('fabric_size', 'ceiling_type', 'bought', 'markup')
         widgets = {
             'fabric_size': forms.Select(attrs={
                 'class': 'form-select',
@@ -14,26 +14,36 @@ class PriceSettingsForms(forms.ModelForm):
                 'class': 'form-select',
                 'required': True
             }),
-            'price_m2': forms.NumberInput(attrs={
+            'bought': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Цена за м²'
-            })
+                'placeholder': 'Купил за м²'
+            }),
+            'markup': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Наценка за м²'
+            }),
         }
 
 class PriceAccessoriesForm(forms.ModelForm):
     class Meta:
         model = PriceAccessories
-        fields = ('accessories', 'price')
+        fields = ('accessories', 'bought', 'markup')
         widgets = {
             'accessories': forms.TextInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'placeholder': 'Введите название комплектующего'
             }),
-            'price': forms.NumberInput(attrs={
+            'bought': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'placeholder': 'Цена'
-            })
+                'placeholder': 'Купил за'
+            }),
+            'markup': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'placeholder': 'Купил за'
+            }),
         }

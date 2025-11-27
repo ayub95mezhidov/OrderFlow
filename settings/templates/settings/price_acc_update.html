@@ -10,13 +10,17 @@
     <form action="{% url 'price_accessories_update' price.id %}" method="post">
         {% csrf_token %}
         <div class="row">
-            <div class="col-6 mb-1">
+            <div class="col-12 mb-1">
                 <label for="{{ form.accessories.id_for_label }}" class="form-label">Название</label>
                 {{ form.accessories }}
             </div>
             <div class="col-6 mb-1">
-                <label for="{{ form.price.id_for_label }}" class="form-label">Цена</label>
-                {{ form.price }}
+                <label for="{{ form.bought.id_for_label }}" class="form-label">Купил</label>
+                {{ form.bought }}
+            </div>
+            <div class="col-6 mb-1">
+                <label for="{{ form.markup.id_for_label }}" class="form-label">Наценка</label>
+                {{ form.markup }}
             </div>
             <div class="col-6 mb-1">
                 <input type="submit" value="Сохранить" class="btn btn-primary w-100 w-md-auto w-lg-auto mt-2">

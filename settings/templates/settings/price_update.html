@@ -7,34 +7,33 @@
 
     <form action="{% url 'price_update' price.id %}" method="post">
         {% csrf_token %}
+        <h2 class="col-12 mb-4 text-md-center">Редактировать Цена/м² </h2>
         <div class="row g-3">
-          <h2 class="col-12 mb-4 text-md-center">Цена/м² </h2>
-          <div class="col-md-4">
-            <div class="mb-3">
-              <label for="{{ form.fabric_size.id_for_label }}" class="form-label">Ширина полотна </label>
-              {{ form.fabric_size }}
-              </div>
-          </div>
-          <div class="col-md-4">
-            <div class="mb-3">
-              <label for="{{ form.ceiling_type.id_for_label }}" class="form-label">Тип полотна </label>
-              {{ form.ceiling_type }}
-          </div>
-        </div>
-            <div class="col-md-4">
-            <div class="mb-3">
-              <label for="{{ form.price_m2.id_for_label }}" class="form-label">Цена/м² </label>
-              {{ form.price_m2 }}
-          </div>
-        </div>
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <input type="submit" value="Создать" class="btn btn-primary w-100 w-md-auto">
-          </div>
-          <div class="col-md-6">
-            <a href="{% url 'price_settings' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
-          </div>
-        </div>
+            <div class="col-md-6">
+                <label for="{{ form.fabric_size.id_for_label }}" class="form-label">Ширина полотна </label>
+                    {{ form.fabric_size }}
+            </div>
+            <div class="col-md-6">
+                <label for="{{ form.ceiling_type.id_for_label }}" class="form-label">Тип полотна </label>
+                {{ form.ceiling_type }}
+            </div>
+            <div class="col-md-6">
+                  <label for="{{ form.bought.id_for_label }}" class="form-label">Купил/м² </label>
+                  {{ form.bought }}
+            </div>
+            <div class="col-md-6">
+                  <label for="{{ form.markup.id_for_label }}" class="form-label">Наценка/м² </label>
+                  {{ form.markup }}
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <input type="submit" value="Создать" class="btn btn-primary w-100 w-md-auto">
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'price_settings' %}" class="btn btn-outline-secondary w-100 w-md-auto">Отмена</a>
+                </div>
+            </div>
+
         </div>
     </form>
 </div>
