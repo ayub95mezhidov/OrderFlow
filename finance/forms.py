@@ -35,6 +35,10 @@ class IncomeForm(forms.ModelForm):
                # 'placeholder': ''
             })
         }
+    def __init__(self, user, *args, **kwargs):
+        # Фильтрация катигории по текущему пользователю
+        super().__init__(*args, **kwargs)
+        self.fields['title'].queryset = CategoryIncome.objects.filter(user=user)
 
 class ExpensesForm(forms.ModelForm):
     class Meta:
@@ -49,6 +53,11 @@ class ExpensesForm(forms.ModelForm):
                # 'placeholder': ''
             })
         }
+
+    def __init__(self, user, *args, **kwargs):
+        # Фильтрация катигории по текущему пользователю
+        super().__init__(*args, **kwargs)
+        self.fields['title'].queryset = CategoryExpenses.objects.filter(user=user)
 
 class CategoryIncomeForm(forms.ModelForm):
     class Meta:

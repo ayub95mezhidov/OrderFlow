@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
-from django.template.defaultfilters import title
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from decimal import Decimal
@@ -14,10 +13,12 @@ from django.urls import reverse
 from django.utils import timezone
 from collections import OrderedDict
 
+from datetime import date
+
 from .models import Order, Customer, Accessories
 from .forms import CustomerForm, AddOrderForm, CustomerSearchForm, AccessoriesForm
 from settings.models import PriceSettings, PriceAccessories
-from finance.models import Wallet, Debt, Income, Expenses
+from finance.models import Wallet, Debt, Income, Profit
 
 # Список клиентов
 class CustomerListView(LoginRequiredMixin, ListView):
@@ -368,6 +369,7 @@ def paid_orders_all_customers(request):
 # Обновляет статус заказа
 @require_POST
 def update_order_status(request, order_id):
+    """Обнавляет статус заказа"""
     try:
         order = Order.objects.get(id=order_id)
         new_status = request.POST.get('status')
@@ -396,12 +398,15 @@ def update_order_status(request, order_id):
 # Обновляет статус платежа заказа
 @require_POST
 def update_payment_status(request, order_id):
+    """Обновляет статус платежа закза потолков"""
     order = Order.objects.get(id=order_id)
     wallet = Wallet.objects.filter(user=request.user).last()
     debt = Debt.objects.filter(user=request.user).last()
 
     new_status = request.POST.get('payment_status')
+    today = date.today()
 
+    profit_amount = order.profit() # прибыль с заказа
     if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
         order.payment_status = new_status
         order.save()
@@ -409,8 +414,15 @@ def update_payment_status(request, order_id):
         if new_status == 'paid':
             wallet.cash += order.total_sum
             wallet.save()
+
             debt.debt -= order.total_sum
             debt.save()
+
+            # Добавляет к общей прибыли прибыль с заказа
+            profit, created = Profit.objects.get_or_create(user=request.user, date=today, defaults={'total': profit_amount})
+            if not created:
+                profit.total += profit_amount
+                profit.save()
 
             from finance.models import CategoryIncome
             obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
@@ -426,6 +438,14 @@ def update_payment_status(request, order_id):
             wallet.save()
             debt.debt += order.total_sum
             debt.save()
+
+            # Отнимает с общей прибыли прибыль с заказа
+            try:
+                profit = Profit.objects.get(user=request.user, date=today)
+                profit.total -= profit_amount
+                profit.save()
+            except Profit.DoesNotExist as ex:
+                print(ex)
 
             # Из истории дохода мы вычеслеям сумму заказа
             from finance.models import CategoryIncome
@@ -451,10 +471,16 @@ def update_payment_status(request, order_id):
 
 # Обнавление статуса платежа комплектующих
 def update_payment_status_accessories(request, accessories_id):
+    """Обновляет статус платежа закза комплектующих"""
     accessories = Accessories.objects.get(id=accessories_id)
     wallet = Wallet.objects.filter(user=request.user).last()
+    debt = Debt.objects.filter(user=request.user).last()
     new_status = request.POST.get('payment_status_accessories')
 
+    today = date.today()
+
+    # Добавляет к общей прибыли прибыль с заказа
+    profit_amount = accessories.profit()
     if accessories_id:
         if new_status in dict(Order.PAYMENT_STATUS_CHOICES):
             accessories.payment_status = new_status
@@ -463,6 +489,15 @@ def update_payment_status_accessories(request, accessories_id):
             if new_status == 'paid':
                 wallet.cash += accessories.accessories_total
                 wallet.save()
+
+                debt.debt -= accessories.accessories_total
+                debt.save()
+
+                # Добавляет к общей прибыли прибыль с заказа
+                profit, created = Profit.objects.get_or_create(user=request.user, date=today, defaults={'total': profit_amount})
+                if not created:
+                    profit.total += profit_amount
+                    profit.save()
 
                 from finance.models import CategoryIncome
                 obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Комплектующие', color='Красный')
@@ -476,6 +511,14 @@ def update_payment_status_accessories(request, accessories_id):
                 # Если статус платежа меняется на "Не оплачено" то с "Кошелка" отнимаеся сумма заказа
                 wallet.cash -= accessories.accessories_total
                 wallet.save()
+
+                # Отнимает с общей прибыли прибыль с заказа
+                try:
+                    profit = Profit.objects.get(user=request.user, date=today)
+                    profit.total -= profit_amount
+                    profit.save()
+                except Profit.DoesNotExist as ex:
+                    print(ex)
 
                 # Из истории дохода мы вычеслеям сумму заказа
                 from finance.models import CategoryIncome

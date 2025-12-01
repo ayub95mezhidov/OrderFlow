@@ -14,8 +14,7 @@ from datetime import timedelta
 import json
 
 from .forms import WalletForm, DebtForm, IncomeForm, ExpensesForm, CategoryIncomeForm, CategoryExpensesForm
-from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses
-from orders.models import Order, Accessories
+from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses, Profit
 
 @login_required(login_url='/users/login/')
 def finance(request):
@@ -52,8 +51,17 @@ def finance(request):
     # ---------- ДЕНЬ ----------
     if period == "day":
         target_day = today + timedelta(days=offset)
-        incomes = Income.objects.filter(date__date=target_day)
-        expenses = Expenses.objects.filter(date__date=target_day)
+        incomes = Income.objects.filter(user=request.user, date__date=target_day)
+        expenses = Expenses.objects.filter(user=request.user, date__date=target_day)
+
+        # Если по этой дате нету записи, создаем новый
+        try:
+            profit = Profit.objects.filter(user=request.user, date__date=target_day).last()
+            total_profit = profit.total
+        except Exception as ex:
+            profit = Profit.objects.create(user=request.user, total=Decimal(0), date=target_day)
+            total_profit = profit.total
+
 
         # Группировка доходов по категориям
         incomes_grouped = (
@@ -87,8 +95,13 @@ def finance(request):
         monday = monday + timedelta(weeks=offset)
         sunday = monday + timedelta(days=6)
 
-        incomes = Income.objects.filter(date__date__range=[monday, sunday])
-        expenses = Expenses.objects.filter(date__date__range=[monday, sunday])
+        incomes = Income.objects.filter(user=request.user, date__date__range=[monday, sunday])
+        expenses = Expenses.objects.filter(user=request.user, date__date__range=[monday, sunday])
+        profit = Profit.objects.filter(user=request.user, date__date__range=[monday, sunday])
+
+        total_profit = 0
+        for obj in profit:
+            total_profit += obj.total
 
         # Группировка доходов по категориям
         incomes_grouped = (
@@ -133,8 +146,13 @@ def finance(request):
 
         period_title = f"{first_day.strftime('%B %Y')}"
 
-        incomes = Income.objects.filter(date__date__range=[first_day, last_day])
-        expenses = Expenses.objects.filter(date__date__range=[first_day, last_day])
+        incomes = Income.objects.filter(user=request.user, date__date__range=[first_day, last_day])
+        expenses = Expenses.objects.filter(user=request.user, date__date__range=[first_day, last_day])
+        profit = Profit.objects.filter(user=request.user, date__date__range=[first_day, last_day])
+
+        total_profit = 0
+        for obj in profit:
+            total_profit += obj.total
 
         # Группировка доходов по категориям
         incomes_grouped = (
@@ -170,6 +188,7 @@ def finance(request):
     context = {
         'wallet': Wallet.objects.filter(user=request.user).last(),
         'debt': Debt.objects.filter(user=request.user).last(),
+        "total_profit": total_profit,
         "period": period,
         "offset": offset,
         "period_title": period_title,
@@ -228,6 +247,12 @@ class IncomeCreateView(CreateView, LoginRequiredMixin):
     template_name = 'finance/create_income.html'
     success_url = reverse_lazy('finance')
 
+    def get_form_kwargs(self):
+        """Передаем пользователя в форму"""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.user = self.request.user
@@ -257,6 +282,12 @@ class ExpensesCreateView(CreateView, LoginRequiredMixin):
     form_class = ExpensesForm
     template_name = 'finance/create_expenses.html'
     success_url = reverse_lazy('finance')
+
+    def get_form_kwargs(self):
+        """Передаем пользователя в форму"""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
@@ -307,5 +338,7 @@ class CategoryExpensesCreateView(CreateView, LoginRequiredMixin):
         self.object.user = self.request.user
 
         return super().form_valid(form)
+
+
 
 

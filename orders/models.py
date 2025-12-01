@@ -76,6 +76,19 @@ class Order(models.Model):
         except PriceSettings.DoesNotExist:
             return Decimal(0)
 
+    def profit(self):
+        """Прибыль с заказа"""
+        from settings.models import PriceSettings
+        try:
+            price_setting = PriceSettings.objects.get(
+                user=self.user,
+                fabric_size=self.fabric_size,
+                ceiling_type=self.ceiling_type,
+            )
+            return price_setting.markup * self.square
+        except PriceSettings.DoesNotExist:
+            return Decimal(0)
+
     @property
     def total_sum(self):
         """Сумма заказа"""
@@ -124,6 +137,19 @@ class Accessories(models.Model):
         if self.accessories and self.accessories.price:
             return Decimal(self.accessories.price * self.quantity)
         return Decimal(0)
+
+    def profit(self):
+        """Прибыль с заказа"""
+        from settings.models import PriceAccessories
+        try:
+            price_setting = PriceAccessories.objects.get(
+                user=self.user,
+                accessories=self.accessories.accessories
+            )
+            return Decimal(self.quantity * price_setting.markup)
+        except PriceAccessories.DoesNotExist:
+            return Decimal(0)
+
 
     def __str__(self):
         return f'{self.accessories} {self.accessories_total}'

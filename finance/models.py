@@ -37,7 +37,7 @@ class CategoryIncome(models.Model):
     user = models.ForeignKey(to=User, on_delete=CASCADE)
 
     def __str__(self):
-        return f'{self.user} - {self.title}'
+        return f'{self.title}'
 
 class CategoryExpenses(models.Model):
     COLOR_CHOICES = [
@@ -59,7 +59,7 @@ class CategoryExpenses(models.Model):
     user = models.ForeignKey(to=User, on_delete=CASCADE)
 
     def __str__(self):
-        return f'{self.user} - {self.title}'
+        return f'{self.title}'
 
 class Income(models.Model):
     total_sum = models.DecimalField(max_digits=10, decimal_places=2)
@@ -79,3 +79,11 @@ class Expenses(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.title} {self.total_sum}'
+
+class Profit(models.Model):
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField(blank=False)
+    user = models.ForeignKey(to=User, on_delete=CASCADE)
+
+    def __str__(self):
+        return f'{self.user} - {self.total}'
