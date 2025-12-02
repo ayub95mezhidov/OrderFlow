@@ -274,6 +274,15 @@ class IncomeCreateView(CreateView, LoginRequiredMixin):
         except Exception as ex:
             print(ex)
 
+        # Обнавляем прибыль
+        today = timezone.now().date()
+        profit = Profit.objects.filter(user=self.request.user, date=today).last()
+        if profit:
+            profit.total += self.object.total_sum
+            profit.save()
+        else:
+            Profit.objects.create(user=self.request.user, date=today, total=self.objects.total_sum)
+
         return super().form_valid(form)
 
 class ExpensesCreateView(CreateView, LoginRequiredMixin):
@@ -309,6 +318,15 @@ class ExpensesCreateView(CreateView, LoginRequiredMixin):
                 )
         except Exception as ex:
             print(ex)
+
+        # Обнавляем прибыль
+        today = timezone.now().date()
+        profit = Profit.objects.filter(user=self.request.user, date=today).last()
+        if profit:
+            profit.total -= self.object.total_sum
+            profit.save()
+        else:
+            Profit.objects.create(user=self.request.user, date=today, total=-self.objects.total_sum)
 
         return super().form_valid(form)
     
