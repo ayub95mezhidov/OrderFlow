@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (CustomerListView, orders, add_customer, add_order, orders_remove, orders_acc_remove, update_order_status,
+from .views import (welcome, CustomerListView, orders, add_customer, add_order, orders_remove, orders_acc_remove, update_order_status,
                     update_payment_status, customer_debt,
                     new_orders_all_customers, completed_orders_all_customers, in_progress_orders_all_customers, not_paid_orders_all_customers, paid_orders_all_customers,
                     customer_update, add_order_accessories,
@@ -10,6 +10,7 @@ from django.conf import settings
 
 urlpatterns = [
     path('customer/', CustomerListView.as_view(),  name='customers'),
+    path('', welcome,  name='welcome'),
     path('add_customer/', add_customer,  name='add_customer'),
     path('<int:customer_id>/update/', customer_update, name='customer_update'),
     path('customer/<int:customer_id>/orders', orders,  name='orders'),

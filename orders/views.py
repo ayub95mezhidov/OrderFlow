@@ -20,6 +20,9 @@ from .forms import CustomerForm, AddOrderForm, CustomerSearchForm, AccessoriesFo
 from settings.models import PriceSettings, PriceAccessories
 from finance.models import Wallet, Debt, Income, Profit
 
+def welcome(request):
+    return render(request, "orders/welcome.html")
+
 # Список клиентов
 class CustomerListView(LoginRequiredMixin, ListView):
     model = Customer
