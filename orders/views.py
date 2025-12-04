@@ -208,10 +208,10 @@ def new_orders_all_customers(request):
     for order in orders_list:
         date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
         if date_key not in grouped_orders:
-            grouped_orders[date_key] = []
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
             total_amount[date_key] = 0
         total_amount[date_key] += order.total_sum
-        grouped_orders[date_key].append(order)
+        grouped_orders[date_key]['orders'].append(order)
 
     price_settings = PriceSettings.objects.all()
 
@@ -244,10 +244,10 @@ def in_progress_orders_all_customers(request):
     for order in orders_list:
         date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
         if date_key not in grouped_orders:
-            grouped_orders[date_key] = []
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
             total_amount[date_key] = 0
         total_amount[date_key] += order.total_sum
-        grouped_orders[date_key].append(order)
+        grouped_orders[date_key]['orders'].append(order)
 
     price_settings = PriceSettings.objects.all()
 
@@ -280,10 +280,10 @@ def completed_orders_all_customers(request):
     for order in orders_list:
         date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
         if date_key not in grouped_orders:
-            grouped_orders[date_key] = []
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
             total_amount[date_key] = 0
         total_amount[date_key] += order.total_sum
-        grouped_orders[date_key].append(order)
+        grouped_orders[date_key]['orders'].append(order)
 
     price_settings = PriceSettings.objects.all()
 
@@ -301,6 +301,7 @@ def completed_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def not_paid_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, payment_status='not paid').order_by('-order_date')
+    accessories_list = Accessories.objects.filter(user=request.user, payment_status='not paid').order_by('-order_date')
 
     # Пагинация
     paginator = Paginator(orders_list, 50)
@@ -316,10 +317,19 @@ def not_paid_orders_all_customers(request):
     for order in orders_list:
         date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
         if date_key not in grouped_orders:
-            grouped_orders[date_key] = []
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
             total_amount[date_key] = 0
         total_amount[date_key] += order.total_sum
-        grouped_orders[date_key].append(order)
+        grouped_orders[date_key]['orders'].append(order)
+
+    for accessory in accessories_list:
+        date_key = accessory.order_date.strftime('%d.%m.%y')
+        if date_key not in grouped_orders:
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
+            total_amount[date_key] = 0
+        total_amount[date_key] += accessory.accessories_total
+        grouped_orders[date_key]['accessories'].append(accessory)
+
 
     price_settings = PriceSettings.objects.all()
 
@@ -337,6 +347,7 @@ def not_paid_orders_all_customers(request):
 @login_required(login_url='/users/login/')
 def paid_orders_all_customers(request):
     orders_list = Order.objects.filter(user=request.user, payment_status='paid').order_by('-order_date')
+    accessories_list = Accessories.objects.filter(user=request.user, payment_status='paid').order_by('-order_date')
 
     # Пагинация
     paginator = Paginator(orders_list, 50)
@@ -352,10 +363,18 @@ def paid_orders_all_customers(request):
     for order in orders_list:
         date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
         if date_key not in grouped_orders:
-            grouped_orders[date_key] = []
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
             total_amount[date_key] = 0
         total_amount[date_key] += order.total_sum
-        grouped_orders[date_key].append(order)
+        grouped_orders[date_key]['orders'].append(order)
+
+    for accessory in accessories_list:
+        date_key = accessory.order_date.strftime('%d.%m.%y')
+        if date_key not in grouped_orders:
+            grouped_orders[date_key] = {'orders': [], 'accessories': []}
+            total_amount[date_key] = 0
+        total_amount[date_key] += accessory.accessories_total
+        grouped_orders[date_key]['accessories'].append(accessory)
 
     price_settings = PriceSettings.objects.all()
 
