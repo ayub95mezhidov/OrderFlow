@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container bg-white rounded shadow p-4 mt-4">
-    {% if daily_stats and daily_stats.daily_goal > 0 or daily_stats != 'Нет цели дня' %}
+    {% if daily_stats %}
     <div class="row">
         <div class="col-6 col-md-6 col-lg-6 mb-2">
             <h2>Статистика</h2>
@@ -103,101 +103,216 @@
 </div>
 
 <!-- Дневная статистика по месяцам -->
-<div class="container bg-white rounded shadow p-4 mt-4">
-    <div class="row mt-4">
+<div class="container bg-white rounded shadow p-3 p-md-4 mt-3 mt-md-4">
+    <div class="row mt-3 mt-md-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">Дневная статистика по месяцам</h3>
-                    <div class="navigation-buttons">
-                        {% if has_prev_month %}
-                        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-sm btn-light">
-                            ← {{ prev_month }}/{{ prev_year }}
-                        </a>
-                        {% else %}
-                        <button class="btn btn-sm btn-light" disabled>← Предыдущий</button>
-                        {% endif %}
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                        <h3 class="h5 h4-md mb-2 mb-md-0">Статистика по месяцам</h3>
+                        <div class="navigation-buttons w-100 w-md-auto">
+                            <div class="d-flex justify-content-between align-items-center">
+                                {% if has_prev_month %}
+                                <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-sm btn-light text-nowrap">
+                                    <span class="d-none d-md-inline">← {{ prev_month }}/{{ prev_year }}</span>
+                                    <span class="d-md-none">←</span>
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-light" disabled>
+                                    <span class="d-none d-md-inline">← Предыдущий</span>
+                                    <span class="d-md-none">←</span>
+                                </button>
+                                {% endif %}
 
-                        <span class="mx-2 fw-bold">{{ selected_month_data.month_name|default:"Нет данных" }}</span>
+                                <span class="mx-1 mx-md-2 fw-bold text-center text-truncate" style="min-width: 120px;">
+                                    {{ selected_month_data.month_name|default:"Нет данных" }}
+                                </span>
 
-                        {% if has_next_month %}
-                        <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-sm btn-light">
-                            {{ next_month }}/{{ next_year }} →
-                        </a>
-                        {% else %}
-                        <button class="btn btn-sm btn-light" disabled>Следующий →</button>
-                        {% endif %}
+                                {% if has_next_month %}
+                                <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-sm btn-light text-nowrap">
+                                    <span class="d-none d-md-inline">{{ next_month }}/{{ next_year }} →</span>
+                                    <span class="d-md-none">→</span>
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-light" disabled>
+                                    <span class="d-none d-md-inline">Следующий →</span>
+                                    <span class="d-md-none">→</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-2 p-md-3">
                     {% if selected_month_data %}
                     <div class="month-section">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h5 class="text-primary">
+                        <div class="row mb-2 mb-md-3">
+                            <div class="col-12 col-md-6 mb-2 mb-md-0">
+                                <h5 class="h6 h5-md text-primary mb-1">
                                     {{ selected_month_data.month_name }}
-                                    <small class="text-muted">({{ selected_month_data.days_count }} дней)</small>
+                                    <small class="text-muted d-block d-md-inline">({{ selected_month_data.days_count }} дней)</small>
                                 </h5>
                             </div>
-                            <div class="col-md-6 text-end">
-                                <div class="month-totals">
-                                    <strong>Итого за месяц:</strong>
-                                    <span class="badge bg-success ms-2">{{ selected_month_data.total_completed|floatformat:2 }} м²</span>
-                                    <span class="badge bg-info ms-2">{{ selected_month_data.total_orders|floatformat:0 }} заказов</span>
-                                    <span class="badge bg-warning ms-2">{{ selected_month_data.progress_percentage|floatformat:1 }}%</span>
+                            <div class="col-12 col-md-6">
+                                <div class="month-totals d-flex flex-wrap justify-content-md-end gap-1">
+                                    <strong class="d-none d-md-inline">Итого за месяц:</strong>
+                                    <span class="badge bg-success">{{ selected_month_data.total_completed|floatformat:2 }} м²</span>
+                                    <span class="badge bg-info">{{ selected_month_data.total_orders|floatformat:0 }} зак.</span>
+                                    <span class="badge bg-warning">{{ selected_month_data.progress_percentage|floatformat:1 }}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-hover table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Дата</th>
-                                        <th>Выполнено (м²)</th>
-                                        <th>Цель дня (м²)</th>
-                                        <th class="text-center">Прогресс</th>
-                                        <th class="text-center">Заказов</th>
-                                        <th class="text-center">Средняя/заказ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for stat in selected_month_data.stats_list %}
-                                    <tr>
-                                        <td>{{ stat.date|date:"d.m.Y" }}</td>
-                                        <td>{{ stat.completed_m2|floatformat:2 }}</td>
-                                        <td>{{ stat.daily_goal|floatformat:2 }}</td>
-                                        <td class="text-center">
-                                            <span class="badge {% if stat.progress_percentage >= 100 %}bg-success{% elif stat.progress_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
-                                                {{ stat.progress_percentage|floatformat:1 }}%
-                                            </span>
-                                        </td>
-                                        <td class="text-center">{{ stat.count_completed_orders|floatformat:0 }}</td>
-                                        <td class="text-center">{{ stat.average_m2_orders|floatformat:2 }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                                <tfoot class="table-info">
-                                    <tr>
-                                        <td><strong>Итого:</strong></td>
-                                        <td><strong>{{ selected_month_data.total_completed|floatformat:2 }}</strong></td>
-                                        <td><strong>{{ selected_month_data.total_goal|floatformat:2 }}</strong></td>
-                                        <td class="text-center">
-                                            <strong class="badge bg-primary">
-                                                {{ selected_month_data.progress_percentage|floatformat:1 }}%
-                                            </strong>
-                                        </td>
-                                        <td class="text-center"><strong>{{ selected_month_data.total_orders|floatformat:0 }}</strong></td>
-                                        <td class="text-center"><strong>{{ selected_month_data.avg_per_order|floatformat:2 }}</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                        <!-- Десктопная таблица -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Дата</th>
+                                            <th>Выполнено (м²)</th>
+                                            <th>Цель дня (м²)</th>
+                                            <th class="text-center">Прогресс</th>
+                                            <th class="text-center">Заказов</th>
+                                            <th class="text-center">Средняя/заказ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in selected_month_data.stats_list %}
+                                        <tr>
+                                            <td>{{ stat.date|date:"d.m.Y" }}</td>
+                                            <td>{{ stat.completed_m2|floatformat:2 }}</td>
+                                            <td>{{ stat.daily_goal|floatformat:2 }}</td>
+                                            <td class="text-center">
+                                                <span class="badge {% if stat.progress_percentage >= 100 %}bg-success{% elif stat.progress_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                    {{ stat.progress_percentage|floatformat:1 }}%
+                                                </span>
+                                            </td>
+                                            <td class="text-center">{{ stat.count_completed_orders|floatformat:0 }}</td>
+                                            <td class="text-center">{{ stat.average_m2_orders|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-info">
+                                        <tr>
+                                            <td><strong>Итого:</strong></td>
+                                            <td><strong>{{ selected_month_data.total_completed|floatformat:2 }}</strong></td>
+                                            <td><strong>{{ selected_month_data.total_goal|floatformat:2 }}</strong></td>
+                                            <td class="text-center">
+                                                <strong class="badge bg-primary">
+                                                    {{ selected_month_data.progress_percentage|floatformat:1 }}%
+                                                </strong>
+                                            </td>
+                                            <td class="text-center"><strong>{{ selected_month_data.total_orders|floatformat:0 }}</strong></td>
+                                            <td class="text-center"><strong>{{ selected_month_data.avg_per_order|floatformat:2 }}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Мобильная версия (карточки) -->
+                        <div class="d-md-none">
+                            <div class="mobile-stats">
+                                {% for stat in selected_month_data.stats_list %}
+                                <div class="card mb-2 border">
+                                    <div class="card-body p-2">
+                                        <div class="row g-1">
+                                            <div class="col-12">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <strong class="text-primary">{{ stat.date|date:"d.m.Y" }}</strong>
+                                                    <span class="badge {% if stat.progress_percentage >= 100 %}bg-success{% elif stat.progress_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                        {{ stat.progress_percentage|floatformat:1 }}%
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Выполнено</small>
+                                                    <strong>{{ stat.completed_m2|floatformat:2 }} м²</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Цель дня</small>
+                                                    <strong>{{ stat.daily_goal|floatformat:2 }} м²</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Заказов</small>
+                                                    <strong class="text-center d-block">{{ stat.count_completed_orders|floatformat:0 }}</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Средняя/заказ</small>
+                                                    <strong class="text-center d-block">{{ stat.average_m2_orders|floatformat:2 }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                <!-- Итого для мобильной версии -->
+                                <div class="card mt-2 border border-primary">
+                                    <div class="card-body p-2 bg-light">
+                                        <div class="row g-1">
+                                            <div class="col-12">
+                                                <strong class="text-primary d-block text-center mb-1">Итого за месяц</strong>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Выполнено</small>
+                                                    <strong class="text-success">{{ selected_month_data.total_completed|floatformat:2 }} м²</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Цель</small>
+                                                    <strong>{{ selected_month_data.total_goal|floatformat:2 }} м²</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Заказов</small>
+                                                    <strong class="text-center d-block">{{ selected_month_data.total_orders|floatformat:0 }}</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <div class="stat-item">
+                                                    <small class="text-muted d-block">Средняя/заказ</small>
+                                                    <strong class="text-center d-block">{{ selected_month_data.avg_per_order|floatformat:2 }}</strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 mt-1">
+                                                <div class="stat-item text-center">
+                                                    <small class="text-muted d-block">Общий прогресс</small>
+                                                    <span class="badge bg-primary fs-6">
+                                                        {{ selected_month_data.progress_percentage|floatformat:1 }}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <p class="text-muted">Нет данных за выбранный месяц</p>
-                        <a href="?year={{ today.year }}&month={{ today.month }}" class="btn btn-primary">
+                    <div class="text-center py-4 py-md-5">
+                        <p class="text-muted mb-3">Нет данных за выбранный месяц</p>
+                        <a href="?year={{ today.year }}&month={{ today.month }}" class="btn btn-primary btn-sm">
                             Вернуться к текущему месяцу
                         </a>
                     </div>
@@ -206,9 +321,72 @@
             </div>
         </div>
     </div>
-
 </div>
 
+<style>
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 767.98px) {
+        .mobile-stats .card {
+            border-radius: 8px;
+        }
+
+        .mobile-stats .stat-item {
+            text-align: center;
+            padding: 4px;
+        }
+
+        .mobile-stats .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+        }
+
+        .month-totals .badge {
+            font-size: 0.8rem;
+            padding: 0.3em 0.6em;
+            margin: 0 2px 2px 0;
+        }
+
+        .navigation-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .navigation-buttons .text-truncate {
+            max-width: 140px;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Адаптация для очень маленьких экранов */
+    @media (max-width: 360px) {
+        .mobile-stats .col-6 {
+            padding-left: 3px;
+            padding-right: 3px;
+        }
+
+        .mobile-stats .stat-item strong {
+            font-size: 0.9rem;
+        }
+
+        .mobile-stats .stat-item small {
+            font-size: 0.7rem;
+        }
+
+        .month-totals .badge {
+            font-size: 0.7rem;
+            padding: 0.2em 0.4em;
+        }
+    }
+
+    /* Плавные переходы */
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
 <!-- Bootstrap JS (с Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
