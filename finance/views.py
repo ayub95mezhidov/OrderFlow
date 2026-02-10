@@ -15,6 +15,7 @@ import json
 
 from .forms import WalletForm, DebtForm, IncomeForm, ExpensesForm, CategoryIncomeForm, CategoryExpensesForm
 from .models import Wallet, Debt, Income, Expenses, CategoryIncome, CategoryExpenses, Profit
+from orders.models import Order
 
 @login_required(login_url='/users/login/')
 def finance(request):
@@ -24,6 +25,16 @@ def finance(request):
     # Получает или создает запись кошелька и долга для текушего пользователя
     Wallet.objects.get_or_create(user=request.user)
     Debt.objects.get_or_create(user=request.user)
+
+    # Долг
+    debt = Debt.objects.filter(user=request.user).last()
+    not_paid_orders = Order.objects.filter(user=request.user, payment_status='not paid')
+    if len(not_paid_orders) != 0:
+        debt.debt = sum(order.total_sum for order in not_paid_orders)
+        debt.save()
+    else:
+        debt.debt = 0
+        debt.save()
 
     today = timezone.now().date()
 
@@ -182,8 +193,6 @@ def finance(request):
     total_income = incomes.aggregate(Sum("total_sum"))["total_sum__sum"] or 0
     total_expenses = expenses.aggregate(Sum("total_sum"))["total_sum__sum"] or 0
     balance = total_income - total_expenses
-
-
 
     context = {
         'wallet': Wallet.objects.filter(user=request.user).last(),

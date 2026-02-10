@@ -423,7 +423,6 @@ def update_payment_status(request, order_id):
     """Обновляет статус платежа закза потолков"""
     order = Order.objects.get(id=order_id)
     wallet = Wallet.objects.filter(user=request.user).last()
-    debt = Debt.objects.filter(user=request.user).last()
 
     new_status = request.POST.get('payment_status')
     today = date.today()
@@ -436,9 +435,6 @@ def update_payment_status(request, order_id):
         if new_status == 'paid':
             wallet.cash += order.total_sum
             wallet.save()
-
-            debt.debt -= order.total_sum
-            debt.save()
 
             # Добавляет к общей прибыли прибыль с заказа
             profit, created = Profit.objects.get_or_create(user=request.user, date=today, defaults={'total': profit_amount})
@@ -458,8 +454,6 @@ def update_payment_status(request, order_id):
             # Если статус платежа меняется на "Не оплачено" то с "Кошелка" отнимаеся сумма заказа
             wallet.cash -= order.total_sum
             wallet.save()
-            debt.debt += order.total_sum
-            debt.save()
 
             # Отнимает с общей прибыли прибыль с заказа
             try:
@@ -496,7 +490,6 @@ def update_payment_status_accessories(request, accessories_id):
     """Обновляет статус платежа закза комплектующих"""
     accessories = Accessories.objects.get(id=accessories_id)
     wallet = Wallet.objects.filter(user=request.user).last()
-    debt = Debt.objects.filter(user=request.user).last()
     new_status = request.POST.get('payment_status_accessories')
 
     today = date.today()
@@ -511,9 +504,6 @@ def update_payment_status_accessories(request, accessories_id):
             if new_status == 'paid':
                 wallet.cash += accessories.accessories_total
                 wallet.save()
-
-                debt.debt -= accessories.accessories_total
-                debt.save()
 
                 # Добавляет к общей прибыли прибыль с заказа
                 profit, created = Profit.objects.get_or_create(user=request.user, date=today, defaults={'total': profit_amount})
