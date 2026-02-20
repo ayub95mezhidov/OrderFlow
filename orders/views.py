@@ -35,7 +35,6 @@ class CustomerListView(LoginRequiredMixin, ListView):
         queryset = Customer.objects.filter(user=self.request.user)
 
         if search_query:
-            # Простой и надежный способ
             results = []
             search_lower = search_query.lower()
 
@@ -62,6 +61,22 @@ class CustomerListView(LoginRequiredMixin, ListView):
         )
         context['search_query'] = self.request.GET.get('search_query', '')
         return context
+
+@login_required
+def customers_with_debt(request):
+    customers = Customer.objects.filter(user=request.user)
+
+    list_customers = []
+    for customer in customers:
+        order = Order.objects.filter(user=request.user, customer=customer, payment_status='not paid')
+        if len(order) != 0:
+            list_customers.append(customer)
+
+    context = {
+        'customers': list_customers,
+    }
+    return render(request, 'orders/customers.html', context=context)
+
 
 # Добавления клиента
 @login_required(login_url='/users/login/')

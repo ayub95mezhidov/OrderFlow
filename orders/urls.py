@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import (welcome, CustomerListView, orders, add_customer, add_order, orders_remove, orders_acc_remove, update_order_status,
+from .views import (welcome, CustomerListView, orders, add_customer, customers_with_debt,
+                    add_order, orders_remove, orders_acc_remove, update_order_status,
                     update_payment_status, customer_debt,
                     new_orders_all_customers, completed_orders_all_customers, in_progress_orders_all_customers, not_paid_orders_all_customers, paid_orders_all_customers,
                     customer_update, add_order_accessories,
@@ -14,6 +15,7 @@ urlpatterns = [
     path('add_customer/', add_customer,  name='add_customer'),
     path('<int:customer_id>/update/', customer_update, name='customer_update'),
     path('customer/<int:customer_id>/orders', orders,  name='orders'),
+    path('customers_with_debt', customers_with_debt,  name='customers_with_debt'),
 
     path('orders/add/', add_order_for_orders, name='add_order'),
     path('orders/add/<int:customer_id>/', add_order, name='add_order_for_customer'),

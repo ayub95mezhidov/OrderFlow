@@ -9,6 +9,7 @@
             <div class="col-12 col-md-6 col-lg-4 mb-3 mb-md-0">
                 <h2 class="col">Наши клиенты</h2>
             </div>
+
             <div class="col-12 col-md-6 col-lg-4 mb-3 mb-md-0">
                 <form method="get" action="{% url 'customers' %}">
                     <div class="input-group">
@@ -19,10 +20,24 @@
                     </div>
                 </form>
             </div>
+
             <div class="col-12 col-md-12 col-lg-4 text-lg-end">
                 <a class="btn btn-primary w-100 w-md-auto" href="{% url 'add_customer' %}">Добавить клиента</a>
             </div>
         </div>
+
+        <div class="col-4 col-md-6 col-lg-1 lg-mt-1">
+                <div class="btn-group">
+                  <a type="button" class="btn  text-primary dropdown-toggle " data-bs-toggle="dropdown" aria-expanded="false">
+                    Фильтр
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'customers_with_debt' %}">Должники</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="">Не оплаченные</a></li>
+                  </ul>
+                </div>
+            </div>
 
         {% if not customers %}
             <div class="alert alert-info mb-0">Клиенты не найдены</div>

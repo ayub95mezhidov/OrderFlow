@@ -60,6 +60,7 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th width="40"></th>
+                                                <th>Клиент</th>
                                                 <th>Ширина</th>
                                                 <th>Длина</th>
                                                 <th>Тип</th>
@@ -82,6 +83,7 @@
                                                        onclick="return confirm('Удалить этот заказ?')">
                                                     </a>
                                                 </td>
+                                                <td><a href="{% url 'orders' order.customer.id %}"  class="text-decoration-none">{{ order.customer.full_name }}</a></td>
                                                 <td>{{ order.width }} м</td>
                                                 <td>{{ order.length }} м</td>
                                                 <td>{{ order.get_ceiling_type_display }}</td>
@@ -146,6 +148,7 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th width="40"></th>
+                                                <th>Клиент</th>
                                                 <th>Комплектующие</th>
                                                 <th>Кол-во</th>
                                                 <th>Сумма</th>
@@ -161,6 +164,7 @@
                                                            onclick="return confirm('Удалить этот заказ?')">
                                                         </a>
                                                     </td>
+                                                    <td><a href="{% url 'orders' accessory.customer.id %}"  class="text-decoration-none">{{ accessory.customer.full_name }}</a></td>
                                                     <td>{{ accessory.accessories }}</td>
                                                     <td>{{ accessory.quantity }}</td>
                                                     <td>{{ accessory.accessories_total|floatformat:2 }} ₽</td>
