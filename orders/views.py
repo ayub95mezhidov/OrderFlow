@@ -618,6 +618,25 @@ def add_order(request, customer_id=None):
                }}
     return render(request, 'orders/add_order.html', context=context)
 
+@login_required
+def update_order(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    if request.method == 'POST':
+        form = AddOrderForm(
+            user=request.user,
+            instance=order,
+            data=request.POST,
+            files=request.FILES,
+        )
+        if form.is_valid():
+            form.save()
+            return redirect('orders', customer_id=order.customer.id)
+    else:
+        form = AddOrderForm(user=request.user, instance=order)
+
+    context = {'form': form, 'order': order}
+    return render(request, 'orders/update_order.html', context)
+
 # Добавить заказ с возможностью выбрать клиента
 @login_required
 def add_order_for_orders(request, customer_id=None):

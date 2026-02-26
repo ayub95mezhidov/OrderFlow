@@ -78,10 +78,16 @@
                                             {% for order in items.orders %}
                                             <tr>
                                                 <td class="text-center">
-                                                    <a class="btn-close btn-sm"
-                                                       href="{% url 'orders_remove' order.id %}"
-                                                       onclick="return confirm('Удалить этот заказ?')">
-                                                    </a>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                                          &#8942;
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="{% url 'update_order' order.id %}">Редактировать</a></li>
+                                                        <li><a class="dropdown-item text-danger" href="{% url 'orders_remove' order.id %}"
+                                                               onclick="return confirm('Удалить этот заказ?')">Удалить</a></li>
+                                                        </ul>
+                                                    </div>
                                                 </td>
                                                 <td><a href="{% url 'orders' order.customer.id %}"  class="text-decoration-none">{{ order.customer.full_name }}</a></td>
                                                 <td>{{ order.width }} м</td>
