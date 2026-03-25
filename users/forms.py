@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, UserChangeForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth import get_user_model
 from .models import User
 
@@ -47,3 +47,25 @@ class UserProfileForm(UserChangeForm):
     class Meta:
         model = User
         fields = ('first_name', 'last_name', 'username', 'email')
+
+class UserPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={
+        'class': 'form-control py-2',
+        'placeholder': 'Введите адрес эл. почты',
+        'autocomplete': 'email'
+    }))
+    class Meta:
+        model = User
+        fields = ('email',)
+
+class UserSetPasswordForm(SetPasswordForm):
+    new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control py-2',
+        'placeholder': 'Введите новый пароль',
+        'autocomplete': 'new-password'
+    }))
+    new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control py-2',
+        'placeholder': 'Подтвердите пароль',
+        'autocomplete': 'new-password'
+    }))

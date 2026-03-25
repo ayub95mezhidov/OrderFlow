@@ -4,8 +4,9 @@ from django.shortcuts import render
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
 
-from .forms import UserLoginForm, UserRegistrationForm, UserProfileForm
+from .forms import UserLoginForm, UserRegistrationForm, UserProfileForm, UserPasswordResetForm, UserSetPasswordForm
 
 def login(request):
     if request.method == 'POST':
@@ -51,3 +52,21 @@ def profile(request):
 def logout(request):
     auth.logout(request)
     return HttpResponseRedirect(reverse('login'))
+
+class CustomPasswordResetView(PasswordResetView):
+    form_class = UserPasswordResetForm
+    template_name = 'users/password_reset_form.html'
+    email_template_name = 'users/password_reset_email.html'
+    subject_template_name = 'users/password_reset_subject.txt'
+    success_url = '/users/password_reset/done/'
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'users/password_reset_done.html'
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    form_class = UserSetPasswordForm
+    template_name = 'users/password_reset_confirm.html'
+    success_url = '/users/password_reset/complete/'
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'users/password_reset_complete.html'

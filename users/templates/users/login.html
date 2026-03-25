@@ -38,7 +38,7 @@
                 {{ form.password }}
               </div>
               <div class="form-group d-flex flex-column flex-md-row align-items-center justify-content-between mt-4 mb-0">
-                <a class="small mb-2 mb-md-0" href="#">Забыли пароль?</a>
+                <a class="small mb-2 mb-md-0" href="{% url 'password_reset' %}">Забыли пароль?</a>
                 <button class="btn btn-primary px-4 py-2" type="submit">Авторизоваться</button>
               </div>
             </form>
