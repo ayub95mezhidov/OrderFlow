@@ -14,6 +14,10 @@ from pathlib import Path
 import os
 
 from django.conf.global_settings import MEDIA_URL, MEDIA_ROOT, STATICFILES_DIRS, AUTH_USER_MODEL, LOGIN_URL
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -150,7 +154,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.mail.ru'
 EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ayub-mezhidov@mail.ru'
-EMAIL_HOST_PASSWORD = '89282905747am'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'ayub-mezhidov@mail.ru')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = 'ayub-mezhidov@mail.ru'
 EMAIL_TIMEOUT = 30
+
+# AI API Keys
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')

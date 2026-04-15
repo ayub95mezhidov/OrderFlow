@@ -290,13 +290,13 @@ class IncomeCreateView(CreateView, LoginRequiredMixin):
             profit.total += self.object.total_sum
             profit.save()
         else:
-            Profit.objects.create(user=self.request.user, date=today, total=self.objects.total_sum)
+            Profit.objects.create(user=self.request.user, date=today, total=self.object.total_sum)
 
         return super().form_valid(form)
 
 class ExpensesCreateView(CreateView, LoginRequiredMixin):
     login_url = '/users/login/'
-    model = Income
+    model = Expenses
     form_class = ExpensesForm
     template_name = 'finance/create_expenses.html'
     success_url = reverse_lazy('finance')
@@ -335,7 +335,7 @@ class ExpensesCreateView(CreateView, LoginRequiredMixin):
             profit.total -= self.object.total_sum
             profit.save()
         else:
-            Profit.objects.create(user=self.request.user, date=today, total=-self.objects.total_sum)
+            Profit.objects.create(user=self.request.user, date=today, total=-self.object.total_sum)
 
         return super().form_valid(form)
     

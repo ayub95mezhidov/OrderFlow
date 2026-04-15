@@ -112,7 +112,7 @@ def customer_update(request, customer_id):
 # Заказы клиента
 @login_required(login_url='/users/login/')
 def orders(request, customer_id):
-    customer = get_object_or_404(Customer, id=customer_id)
+    customer = get_object_or_404(Customer, id=customer_id, user=request.user)
 
     # Получаем заказы и сортируем по дате (новые сверху)
     orders_list = Order.objects.filter(user=request.user, customer=customer).order_by('-order_date')
@@ -501,6 +501,8 @@ def update_payment_status(request, order_id):
         return response
 
 # Обнавление статуса платежа комплектующих
+@login_required
+@require_POST
 def update_payment_status_accessories(request, accessories_id):
     """Обновляет статус платежа закза комплектующих"""
     accessories = Accessories.objects.get(id=accessories_id)
@@ -591,8 +593,6 @@ def add_order(request, customer_id=None):
     if customer_id:
         customer = get_object_or_404(Customer, id=customer_id)
 
-    debt = Debt.objects.filter(user=request.user)
-
     if request.method == 'POST':
         form = AddOrderForm(request.user, request.POST, request.FILES)
         if form.is_valid():
@@ -602,7 +602,7 @@ def add_order(request, customer_id=None):
                 order.customer = customer
             order.save()
             # Присваиваем сумму заказа(total_sum) debt и сохраняем
-            debt = debt.last()
+            debt, _ = Debt.objects.get_or_create(user=request.user)
             debt.debt += order.total_sum
             debt.save()
             return redirect('orders', customer_id=order.customer.id)
@@ -644,8 +644,6 @@ def add_order_for_orders(request, customer_id=None):
     if customer_id:
         customer = get_object_or_404(Customer, id=customer_id, user=request.user)
 
-    debt = Debt.objects.filter(user=request.user)
-
     if request.method == 'POST':
         form = AddOrderForm(request.user, request.POST, request.FILES)
         if form.is_valid():
@@ -662,7 +660,7 @@ def add_order_for_orders(request, customer_id=None):
             if order.customer:  # Проверяем, что клиент установлен
                 order.save()
                 # Присваиваем сумму заказа(total_sum) debt и сохраняем
-                debt = debt.last()
+                debt, _ = Debt.objects.get_or_create(user=request.user)
                 debt.debt += order.total_sum
                 debt.save()
                 return redirect('new_orders_all')
@@ -688,9 +686,7 @@ def add_order_for_orders(request, customer_id=None):
 def add_order_accessories(request, customer_id=None):
     customer = None
     if customer_id:
-        customer = get_object_or_404(Customer, id=customer_id)
-
-    debt = Debt.objects.filter(user=request.user)
+        customer = get_object_or_404(Customer, id=customer_id, user=request.user)
 
     if request.method == 'POST':
         form = AccessoriesForm(request.user, request.POST)
@@ -701,7 +697,7 @@ def add_order_accessories(request, customer_id=None):
                 order.customer = customer
             order.save()
             # Присваиваем сумму заказа(total_sum) debt и сохраняем
-            debt = debt.last()
+            debt, _ = Debt.objects.get_or_create(user=request.user)
             debt.debt += order.accessories_total
             debt.save()
             return redirect('orders', customer_id=order.customer.id)
@@ -713,17 +709,182 @@ def add_order_accessories(request, customer_id=None):
                }
     return render(request, 'orders/add_accessories.html', context=context)
 
+@login_required
 def orders_remove(request, order_id):
-    order = Order.objects.get(id=order_id)
+    order = get_object_or_404(Order, id=order_id, user=request.user)
     order.delete()
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
+@login_required
 def orders_acc_remove(request, order_id):
-    order = Accessories.objects.get(id=order_id)
+    order = get_object_or_404(Accessories, id=order_id, user=request.user)
     order.delete()
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
+@login_required
 def customers_remove(request, customer_id):
-    customer = Customer.objects.get(id=customer_id)
+    customer = get_object_or_404(Customer, id=customer_id, user=request.user)
     customer.delete()
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
+
+
+# ─── AI-сканирование чертежей ────────────────────────────────────────────────
+
+@login_required
+def scan_drawings(request, customer_id=None):
+    from django.contrib import messages as django_messages
+    from .ai_recognition import recognize_rooms
+
+    customers = Customer.objects.filter(user=request.user).order_by('full_name')
+    customer = None
+    if customer_id:
+        customer = get_object_or_404(Customer, id=customer_id, user=request.user)
+
+    if request.method == 'POST':
+        provider = request.POST.get('provider', 'claude')
+        selected_customer_id = request.POST.get('customer_id') or customer_id
+        photos = request.FILES.getlist('photos')
+
+        if not selected_customer_id:
+            django_messages.error(request, 'Выберите клиента.')
+            return render(request, 'orders/scan_drawings.html', {
+                'customers': customers, 'customer': customer
+            })
+
+        if not photos:
+            django_messages.error(request, 'Загрузите хотя бы одно фото.')
+            return render(request, 'orders/scan_drawings.html', {
+                'customers': customers, 'customer': customer
+            })
+
+        all_rooms = []
+        errors = []
+        for photo in photos:
+            try:
+                rooms = recognize_rooms(photo, provider)
+                all_rooms.extend(rooms)
+            except ValueError as e:
+                django_messages.error(request, str(e))
+                return render(request, 'orders/scan_drawings.html', {
+                    'customers': customers, 'customer': customer
+                })
+            except Exception as e:
+                errors.append(f'{photo.name}: {str(e)}')
+
+        if errors:
+            django_messages.warning(request, 'Не удалось обработать некоторые фото: ' + '; '.join(errors))
+
+        if not all_rooms:
+            django_messages.warning(request, 'AI не смог распознать размеры на загруженных фото. Попробуйте другие фото.')
+            return render(request, 'orders/scan_drawings.html', {
+                'customers': customers, 'customer': customer
+            })
+
+        # Нумеруем комнаты если имена дублируются
+        for i, room in enumerate(all_rooms):
+            if not room.get('name'):
+                room['name'] = f'Комната {i + 1}'
+
+        request.session['scanned_rooms'] = all_rooms
+        request.session['scan_customer_id'] = int(selected_customer_id)
+        return redirect('scan_confirm')
+
+    return render(request, 'orders/scan_drawings.html', {
+        'customers': customers,
+        'customer': customer,
+    })
+
+
+@login_required
+def scan_confirm(request):
+    from django.contrib import messages as django_messages
+
+    rooms = request.session.get('scanned_rooms')
+    customer_id = request.session.get('scan_customer_id')
+
+    if not rooms or not customer_id:
+        django_messages.warning(request, 'Сессия истекла. Загрузите фото заново.')
+        return redirect('scan_drawings')
+
+    customer = get_object_or_404(Customer, id=customer_id, user=request.user)
+
+    FABRIC_SIZE_CHOICES = [
+        ('short', '1.5м - 3.6м'),
+        ('wide', '4.0м - 5.0м'),
+        ('the widest', '5.8м'),
+    ]
+    CEILING_TYPE_CHOICES = [
+        ('white mat', 'Белый мат'),
+        ('colored mat', 'Цветной мат'),
+        ('white gloss', 'Белый лак'),
+        ('colored gloss', 'Цветной лак'),
+        ('white sateen', 'Белый сатин'),
+        ('colored sateen', 'Цветной сатин'),
+        ('venice', 'Венеция'),
+        ('sky', 'Небо'),
+    ]
+
+    if request.method == 'POST':
+        debt, _ = Debt.objects.get_or_create(user=request.user)
+        created_count = 0
+
+        count = int(request.POST.get('room_count', 0))
+        for i in range(count):
+            if request.POST.get(f'delete_{i}'):
+                continue
+            try:
+                width = Decimal(request.POST.get(f'width_{i}', '0'))
+                length = Decimal(request.POST.get(f'length_{i}', '0'))
+                fabric_size = request.POST.get(f'fabric_size_{i}', 'short')
+                ceiling_type = request.POST.get(f'ceiling_type_{i}', 'white mat')
+            except Exception:
+                continue
+
+            if width <= 0 or length <= 0:
+                continue
+
+            order = Order(
+                customer=customer,
+                user=request.user,
+                width=width,
+                length=length,
+                fabric_size=fabric_size,
+                ceiling_type=ceiling_type,
+                status='new',
+                payment_status='not paid',
+            )
+            order.save()
+
+            debt.debt += order.total_sum
+            debt.save()
+
+            created_count += 1
+
+        del request.session['scanned_rooms']
+        del request.session['scan_customer_id']
+
+        django_messages.success(request, f'Создано заказов: {created_count}.')
+        return redirect('orders', customer_id=customer.id)
+
+    # GET: подготовить данные для шаблона
+    enriched_rooms = []
+    for i, room in enumerate(rooms):
+        w = room['width']
+        l = room['length']
+        enriched_rooms.append({
+            'index': i,
+            'name': room.get('name', f'Комната {i+1}'),
+            'width': f"{w:.2f}",
+            'length': f"{l:.2f}",
+            'fabric_size': room.get('fabric_size', 'short'),
+            'ceiling_type': room.get('ceiling_type', 'white mat'),
+            'square': f"{w * l:.2f}",
+        })
+
+    return render(request, 'orders/scan_confirm.html', {
+        'customer': customer,
+        'rooms': enriched_rooms,
+        'room_count': len(enriched_rooms),
+        'fabric_size_choices': FABRIC_SIZE_CHOICES,
+        'ceiling_type_choices': CEILING_TYPE_CHOICES,
+    })

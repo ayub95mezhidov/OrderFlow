@@ -1,0 +1,183 @@
+{% extends 'orders/base.html' %}
+{% load static %}
+
+{% block title %}Подтверждение заказов — {{ customer.full_name }}{% endblock %}
+
+{% block content %}
+<div class="main my-3 my-md-4">
+    <div class="container">
+
+        <div class="mb-3">
+            <a href="{% url 'scan_drawings_customer' customer.id %}" class="btn btn-outline-secondary btn-sm">← Назад</a>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4 class="mb-1">Подтверждение заказов</h4>
+                        <p class="text-muted mb-0">
+                            Клиент: <strong>{{ customer.full_name }}</strong> &nbsp;·&nbsp;
+                            Распознано помещений: <strong>{{ room_count }}</strong>
+                        </p>
+                    </div>
+                    <span class="badge bg-primary fs-6">{{ room_count }} комн.</span>
+                </div>
+
+                <p class="text-muted small mb-3">
+                    Проверьте и при необходимости отредактируйте размеры.
+                    Нажмите <strong>✕</strong> чтобы удалить помещение из списка.
+                </p>
+
+                <form method="post" id="confirmForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="room_count" value="{{ room_count }}">
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="roomsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:40px">#</th>
+                                    <th>Название</th>
+                                    <th style="width:110px">Ширина, м</th>
+                                    <th style="width:110px">Длина, м</th>
+                                    <th style="width:90px">Площадь</th>
+                                    <th style="width:160px">Ширина полотна</th>
+                                    <th style="width:160px">Тип потолка</th>
+                                    <th style="width:40px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for room in rooms %}
+                                <tr id="row_{{ room.index }}" class="room-row">
+                                    <td class="text-center text-muted small">{{ forloop.counter }}</td>
+                                    <td>
+                                        <input type="text" name="name_{{ room.index }}"
+                                               value="{{ room.name }}"
+                                               class="form-control form-control-sm">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="width_{{ room.index }}"
+                                               value="{{ room.width }}"
+                                               step="0.01" min="0.1" max="99"
+                                               class="form-control form-control-sm width-input"
+                                               data-index="{{ room.index }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="length_{{ room.index }}"
+                                               value="{{ room.length }}"
+                                               step="0.01" min="0.1" max="99"
+                                               class="form-control form-control-sm length-input"
+                                               data-index="{{ room.index }}">
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border square-display"
+                                              id="square_{{ room.index }}">
+                                            {{ room.square }} м²
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <select name="fabric_size_{{ room.index }}" class="form-select form-select-sm">
+                                            {% for val, label in fabric_size_choices %}
+                                                <option value="{{ val }}"
+                                                    {% if room.fabric_size == val %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="ceiling_type_{{ room.index }}" class="form-select form-select-sm">
+                                            {% for val, label in ceiling_type_choices %}
+                                                <option value="{{ val }}"
+                                                    {% if room.ceiling_type == val %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="delete_{{ room.index }}" id="deleteFlag_{{ room.index }}" value="">
+                                        <button type="button" class="btn btn-outline-danger btn-sm delete-row-btn"
+                                                data-index="{{ room.index }}" title="Удалить">
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        Нет распознанных помещений
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-muted small" id="activeCount">
+                            Будет создано заказов: <strong>{{ room_count }}</strong>
+                        </span>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'scan_drawings_customer' customer.id %}"
+                               class="btn btn-outline-secondary">← Назад</a>
+                            <button type="submit" class="btn btn-success" id="createBtn">
+                                ✓ Создать заказы
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeCount = {{ room_count }};
+
+    // Удаление строки
+    document.querySelectorAll('.delete-row-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const index = this.dataset.index;
+            const row = document.getElementById('row_' + index);
+            row.style.opacity = '0.3';
+            row.style.textDecoration = 'line-through';
+            document.getElementById('deleteFlag_' + index).value = '1';
+            this.disabled = true;
+            activeCount--;
+            updateActiveCount();
+        });
+    });
+
+    function updateActiveCount() {
+        const el = document.getElementById('activeCount');
+        el.innerHTML = 'Будет создано заказов: <strong>' + activeCount + '</strong>';
+        const btn = document.getElementById('createBtn');
+        btn.disabled = activeCount === 0;
+    }
+
+    // Пересчёт площади при изменении размеров
+    function recalcSquare(index) {
+        const w = parseFloat(document.querySelector('.width-input[data-index="' + index + '"]').value) || 0;
+        const l = parseFloat(document.querySelector('.length-input[data-index="' + index + '"]').value) || 0;
+        const sq = (w * l).toFixed(2);
+        document.getElementById('square_' + index).textContent = sq + ' м²';
+    }
+
+    document.querySelectorAll('.width-input, .length-input').forEach(input => {
+        input.addEventListener('input', function () {
+            recalcSquare(this.dataset.index);
+        });
+    });
+</script>
+{% endblock %}

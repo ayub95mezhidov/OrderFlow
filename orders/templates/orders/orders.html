@@ -20,14 +20,20 @@
                     </span>
                 </h3>
 
-                <div class="dropdown">
-                    <a class="btn btn-primary btn-sm ms-md-2 w--100 dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
-                        Новый заказ
+                <div class="d-flex gap-2">
+                    <a href="{% url 'scan_drawings_customer' customer.id %}"
+                       class="btn btn-outline-success btn-sm ms-md-2">
+                        🤖 AI Сканирование
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
-                        <li><a class="dropdown-item" href="{% url 'add_order_for_customer' customer.id %}">Потолок</a></li>
-                        <li><a class="dropdown-item" href="{% url 'add_order_accessories' customer.id %}">Комплектующий</a></li>
-                    </ul>
+                    <div class="dropdown">
+                        <a class="btn btn-primary btn-sm dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+                            Новый заказ
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                            <li><a class="dropdown-item" href="{% url 'add_order_for_customer' customer.id %}">Потолок</a></li>
+                            <li><a class="dropdown-item" href="{% url 'add_order_accessories' customer.id %}">Комплектующий</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

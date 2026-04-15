@@ -1,0 +1,134 @@
+{% extends 'orders/base.html' %}
+{% load static %}
+
+{% block title %}AI Сканирование чертежей{% endblock %}
+
+{% block content %}
+<div class="main my-3 my-md-4">
+    <div class="container">
+
+        <div class="mb-3">
+            <a href="{% if customer %}{% url 'orders' customer.id %}{% else %}{% url 'customers' %}{% endif %}"
+               class="btn btn-outline-secondary btn-sm">← Назад</a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h4 class="mb-1">
+                    <span class="me-2">🤖</span>AI Сканирование чертежей
+                </h4>
+                <p class="text-muted mb-4">
+                    Сфотографируйте рукописные чертежи с размерами комнат.
+                    AI автоматически распознает размеры и создаст заказы.
+                </p>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" id="scanForm">
+                    {% csrf_token %}
+
+                    <!-- Выбор клиента -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Клиент</label>
+                        {% if customer %}
+                            <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                            <div class="form-control bg-light">{{ customer.full_name }}</div>
+                        {% else %}
+                            <select name="customer_id" class="form-select" required>
+                                <option value="">— Выберите клиента —</option>
+                                {% for c in customers %}
+                                    <option value="{{ c.id }}">{{ c.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
+                    </div>
+
+                    <!-- Выбор AI провайдера -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">AI модель</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="provider"
+                                       id="providerClaude" value="claude" checked>
+                                <label class="form-check-label" for="providerClaude">
+                                    Claude 3.5 Sonnet
+                                    <span class="badge bg-success ms-1">Рекомендуется</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="provider"
+                                       id="providerGPT" value="gpt4o">
+                                <label class="form-check-label" for="providerGPT">GPT-4o</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Загрузка фото -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Фото чертежей</label>
+                        <input type="file" name="photos" id="photoInput"
+                               class="form-control" multiple accept="image/*" required>
+                        <div class="form-text">Можно загрузить несколько фото. Для каждого фото AI распознает все комнаты.</div>
+                    </div>
+
+                    <!-- Превью загруженных фото -->
+                    <div id="previewContainer" class="d-flex flex-wrap gap-2 mb-4" style="display:none!important"></div>
+
+                    <!-- Кнопка -->
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span id="btnText">Распознать →</span>
+                        <span id="btnSpinner" class="d-none">
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            Обработка...
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Превью фотографий
+    document.getElementById('photoInput').addEventListener('change', function () {
+        const container = document.getElementById('previewContainer');
+        container.innerHTML = '';
+        container.style.display = 'flex';
+
+        Array.from(this.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const col = document.createElement('div');
+                col.style.cssText = 'position:relative;';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:120px;height:120px;object-fit:cover;border-radius:8px;border:2px solid #dee2e6;';
+
+                const label = document.createElement('div');
+                label.textContent = file.name.length > 15 ? file.name.slice(0, 12) + '...' : file.name;
+                label.style.cssText = 'font-size:11px;color:#6c757d;text-align:center;margin-top:4px;max-width:120px;overflow:hidden;';
+
+                col.appendChild(img);
+                col.appendChild(label);
+                container.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Спиннер при отправке
+    document.getElementById('scanForm').addEventListener('submit', function () {
+        document.getElementById('btnText').classList.add('d-none');
+        document.getElementById('btnSpinner').classList.remove('d-none');
+        document.getElementById('submitBtn').disabled = true;
+    });
+</script>
+{% endblock %}
