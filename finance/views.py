@@ -280,8 +280,8 @@ class IncomeCreateView(CreateView, LoginRequiredMixin):
                     user=self.request.user,
                     cash=self.object.total_sum
                 )
-        except Exception as ex:
-            print(ex)
+        except Exception:
+            pass
 
         # Обнавляем прибыль
         today = timezone.now().date()
@@ -325,8 +325,8 @@ class ExpensesCreateView(CreateView, LoginRequiredMixin):
                     user=self.request.user,
                     cash=self.object.total_sum
                 )
-        except Exception as ex:
-            print(ex)
+        except Exception:
+            pass
 
         # Обнавляем прибыль
         today = timezone.now().date()

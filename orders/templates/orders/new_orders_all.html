@@ -2,244 +2,237 @@
 
 {% block content %}
 <div class="main my-3 my-md-4">
+    <!-- Шапка -->
     <div class="container mt-3 mb-3">
-        <div class="row">
-            <div class="col-4 col-md-2 col-lg-1">
-                <h2 class="">Заказы</h2>
-            </div>
-
-            <div class="col-4 col-md-6 col-lg-1 lg-mt-1">
-                <div class="btn-group">
-                  <a type="button" class="btn  text-primary dropdown-toggle " data-bs-toggle="dropdown" aria-expanded="false">
-                    Фильтр
-                  </a>
-                  <ul class="dropdown-menu">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <h2 class="mb-0 me-2 fs-4">{{ title|default:"Заказы" }}</h2>
+            <div class="btn-group">
+                <a type="button" class="btn text-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    Статус
+                </a>
+                <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{% url 'new_orders_all' %}">Новые</a></li>
                     <li><a class="dropdown-item" href="{% url 'in_progress_orders' %}">В работе</a></li>
-                    <li><a class="dropdown-item" href="{% url 'completed_orders' %}">Завершенные</a></li>
+                    <li><a class="dropdown-item" href="{% url 'completed_orders' %}">Завершённые</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="{% url 'not_paid_orders' %}">Не оплаченные</a></li>
                     <li><a class="dropdown-item" href="{% url 'paid_orders' %}">Оплаченные</a></li>
-                  </ul>
-                </div>
+                </ul>
             </div>
-
-
-            <div class=" col-4 col-md-4 col-lg-10 mt-1 text-end">
-                <a class="btn btn-primary btn-sm" href="{% url 'add_order' %}">
-                    Новый заказз
-                </a>
-            </div>
+            <a class="btn btn-primary btn-sm ms-auto" href="{% url 'add_order' %}">+ Заказ</a>
         </div>
     </div>
 
-    <!-- Тело карточки -->
+    <!-- Фильтры -->
+    <div class="container mb-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">С даты</label>
+                <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">По дату</label>
+                <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control form-control-sm">
+            </div>
+            {% if show_payment_filter %}
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Оплата</label>
+                <select name="payment_status" class="form-select form-select-sm">
+                    <option value="">Все</option>
+                    {% for value, label in payment_status_choices %}
+                        <option value="{{ value }}" {% if filters.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">Применить</button>
+                <a href="?" class="btn btn-outline-secondary btn-sm">Сбросить</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Тело -->
     <div class="bg-light bg-gradient card border-0">
         <div class="card-body p-0">
             {% if not grouped_orders %}
                 <div class="container bg-white rounded p-4">
-                    <div class="alert alert-info m-3">Нет заказов для этого клиента</div>
+                    <div class="alert alert-info m-3">Нет заказов</div>
                 </div>
             {% else %}
                 {% for date, items in grouped_orders.items %}
-                    <div class=" mb-3">
-                        <div class="container bg-white rounded shadow p-4">
-                            <!-- Заголовок с датой -->
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 p-2 bg-light rounded">
-                                <h5 class="mb-0">{{ date }}</h5>
-                                <span class="badge bg-secondary">
-                                    {{ items.orders|length }} заказ(ов)
-                                </span>
-                            </div>
-
-                            <!-- Заказы на потолки -->
-                            {% if items.orders %}
-                                <h6 class="mb-3">Потолки</h6>
-                                <div class="table-responsive mb-4">
-                                    <table class="table table-bordered table-hover table-sm align-middle">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="40"></th>
-                                                <th>Клиент</th>
-                                                <th>Ширина</th>
-                                                <th>Длина</th>
-                                                <th>Тип</th>
-                                                <th>Фото</th>
-                                                <th>м²</th>
-                                                <th>Периметр</th>
-                                                <th class="d-none d-md-table-cell">Ткань</th>
-                                                <th>Цена</th>
-                                                <th>Сумма</th>
-                                                <th>Оплата</th>
-                                                <th>Статус</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for order in items.orders %}
-                                            <tr>
-                                                <td class="text-center">
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="dropdown">
-                                                          &#8942;
-                                                        </button>
-                                                        <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="{% url 'update_order' order.id %}">Редактировать</a></li>
-                                                        <li><a class="dropdown-item text-danger" href="{% url 'orders_remove' order.id %}"
-                                                               onclick="return confirm('Удалить этот заказ?')">Удалить</a></li>
-                                                        </ul>
-                                                    </div>
-                                                </td>
-                                                <td><a href="{% url 'orders' order.customer.id %}"  class="text-decoration-none">{{ order.customer.full_name }}</a></td>
-                                                <td>{{ order.width }} м</td>
-                                                <td>{{ order.length }} м</td>
-                                                <td>{{ order.get_ceiling_type_display }}</td>
-                                                <td>
-                                                    {% if order.photo %}
-                                                    <a href="{{ order.photo.url }}"
-                                                       target="_blank"
-                                                       data-bs-toggle="tooltip"
-                                                       title="Просмотреть фото"
-                                                       class="d-inline-block">
-                                                        <img src="{{ order.photo.url }}"
-                                                             width="40"
-                                                             height="40"
-                                                             class="img-thumbnail object-fit-cover">
-                                                    </a>
-                                                    {% else %}
-                                                    —
-                                                    {% endif %}
-                                                </td>
-                                                <td>{{ order.square|floatformat:2 }}</td>
-                                                <td>{{ order.perimeter|floatformat:2 }}</td>
-                                                <td class="d-none d-md-table-cell">{{ order.get_fabric_size_display }}</td>
-                                                <td>{{ order.price }} ₽</td>
-                                                <td>{{ order.total_sum|floatformat:2 }} ₽</td>
-                                                <td>
-                                                    <select class="form-select form-select-sm text-white {% if order.payment_status == 'not paid' %} bg-danger {% else %} bg-success {% endif %}"
-                                                        hx-post="{% url 'update_payment_status' order.id %}"
-                                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                                        name="payment_status">
-                                                        {% for value, label in order.PAYMENT_STATUS_CHOICES %}
-                                                        <option value="{{ value }}" {% if order.payment_status == value %}selected{% endif %}>
-                                                            {{ label }}
-                                                        </option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select class="form-select form-select-sm text-white {% if order.status == 'new' %} bg-secondary {% elif order.status == 'in_progress' %} bg-warning {% else %} bg-success {% endif %}"
-                                                        hx-post="{% url 'update_order_status' order.id %}"
-                                                        hx-trigger="change"
-                                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                                        name="status">
-                                                        {% for value, label in order.STATUS_CHOICES %}
-                                                        <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>
-                                                            {{ label }}
-                                                        </option>
-                                                        {% endfor %}
-                                                    </select>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endif %}
-
-                            <!-- Заказы на комплектующие -->
-                            {% if items.accessories %}
-                                <h6 class="mb-3">Комплектующие</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover table-sm align-middle">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th width="40"></th>
-                                                <th>Клиент</th>
-                                                <th>Комплектующие</th>
-                                                <th>Кол-во</th>
-                                                <th>Сумма</th>
-                                                <th>Оплата</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for accessory in items.accessories %}
-                                                <tr>
-                                                    <td class="text-center">
-                                                        <a class="btn-close btn-sm"
-                                                           href="{% url 'orders_acc_remove' accessory.id %}"
-                                                           onclick="return confirm('Удалить этот заказ?')">
-                                                        </a>
-                                                    </td>
-                                                    <td><a href="{% url 'orders' accessory.customer.id %}"  class="text-decoration-none">{{ accessory.customer.full_name }}</a></td>
-                                                    <td>{{ accessory.accessories }}</td>
-                                                    <td>{{ accessory.quantity }}</td>
-                                                    <td>{{ accessory.accessories_total|floatformat:2 }} ₽</td>
-                                                    <td>
-                                                        <select class="form-select form-select-sm text-white {% if accessory.payment_status == 'not paid' %} bg-danger {% else %} bg-success {% endif %}"
-                                                                hx-post="{% url 'update_payment_status_accessories' accessory.id %}"
-                                                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                                                name="payment_status_accessories">
-                                                                {% for value, label in accessory.PAYMENT_STATUS_CHOICES %}
-                                                                <option value="{{ value }}" {% if accessory.payment_status == value %}selected{% endif %}>
-                                                                    {{ label }}
-                                                                </option>
-                                                                {% endfor %}
-                                                            </select>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endif %}
+                <div class="mb-3">
+                    <div class="container bg-white rounded shadow p-3 p-md-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 p-2 bg-light rounded">
+                            <h5 class="mb-0">{{ date }}</h5>
+                            <span class="badge bg-secondary">{{ items.orders|length }} заказ(ов)</span>
                         </div>
+
+                        <!-- Потолки -->
+                        {% if items.orders %}
+                        <h6 class="mb-2">Потолки</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="36"></th>
+                                        <th>Клиент</th>
+                                        <th>Ширина</th>
+                                        <th>Длина</th>
+                                        <th class="d-none d-sm-table-cell">Тип</th>
+                                        <th class="d-none d-md-table-cell">Фото</th>
+                                        <th class="d-none d-sm-table-cell">м²</th>
+                                        <th class="d-none d-lg-table-cell">Периметр</th>
+                                        <th class="d-none d-lg-table-cell">Ткань</th>
+                                        <th class="d-none d-md-table-cell">Цена</th>
+                                        <th>Сумма</th>
+                                        <th>Оплата</th>
+                                        <th class="d-none d-sm-table-cell">Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in items.orders %}
+                                    <tr>
+                                        <td class="text-center">
+                                            <div class="dropdown">
+                                                <button class="btn btn-outline-secondary btn-sm p-1 lh-1" type="button" data-bs-toggle="dropdown">&#8942;</button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="{% url 'update_order' order.id %}">Редактировать</a></li>
+                                                    <li><a class="dropdown-item text-danger" href="{% url 'orders_remove' order.id %}" onclick="return confirm('Удалить?')">Удалить</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                        <td><a href="{% url 'orders' order.customer.id %}" class="text-decoration-none text-nowrap">{{ order.customer.full_name }}</a></td>
+                                        <td class="text-nowrap">{{ order.width }} м</td>
+                                        <td class="text-nowrap">{{ order.length }} м</td>
+                                        <td class="d-none d-sm-table-cell">{{ order.get_ceiling_type_display }}</td>
+                                        <td class="d-none d-md-table-cell">
+                                            {% if order.photo %}
+                                            <a href="{{ order.photo.url }}" target="_blank">
+                                                <img src="{{ order.photo.url }}" width="36" height="36" class="img-thumbnail object-fit-cover">
+                                            </a>
+                                            {% else %}—{% endif %}
+                                        </td>
+                                        <td class="d-none d-sm-table-cell">{{ order.square|floatformat:2 }}</td>
+                                        <td class="d-none d-lg-table-cell">{{ order.perimeter|floatformat:2 }}</td>
+                                        <td class="d-none d-lg-table-cell">{{ order.get_fabric_size_display }}</td>
+                                        <td class="d-none d-md-table-cell text-nowrap">{{ order.price }} ₽</td>
+                                        <td class="text-nowrap">{{ order.total_sum|floatformat:2 }} ₽</td>
+                                        <td>
+                                            <select class="form-select form-select-sm text-white {% if order.payment_status == 'not paid' %}bg-danger{% else %}bg-success{% endif %}"
+                                                hx-post="{% url 'update_payment_status' order.id %}"
+                                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                                name="payment_status" style="min-width:90px">
+                                                {% for value, label in order.PAYMENT_STATUS_CHOICES %}
+                                                <option value="{{ value }}" {% if order.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="d-none d-sm-table-cell">
+                                            <select class="form-select form-select-sm text-white {% if order.status == 'new' %}bg-secondary{% elif order.status == 'in_progress' %}bg-warning{% else %}bg-success{% endif %}"
+                                                hx-post="{% url 'update_order_status' order.id %}"
+                                                hx-trigger="change"
+                                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                                name="status" style="min-width:100px">
+                                                {% for value, label in order.STATUS_CHOICES %}
+                                                <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+
+                        <!-- Комплектующие -->
+                        {% if items.accessories %}
+                        <h6 class="mb-2">Комплектующие</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="36"></th>
+                                        <th>Клиент</th>
+                                        <th>Комплектующие</th>
+                                        <th class="d-none d-sm-table-cell">Кол-во</th>
+                                        <th>Сумма</th>
+                                        <th>Оплата</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for accessory in items.accessories %}
+                                    <tr>
+                                        <td class="text-center">
+                                            <a class="btn-close btn-sm"
+                                               href="{% url 'orders_acc_remove' accessory.id %}"
+                                               onclick="return confirm('Удалить?')"></a>
+                                        </td>
+                                        <td><a href="{% url 'orders' accessory.customer.id %}" class="text-decoration-none text-nowrap">{{ accessory.customer.full_name }}</a></td>
+                                        <td>{{ accessory.accessories }}</td>
+                                        <td class="d-none d-sm-table-cell">{{ accessory.quantity }}</td>
+                                        <td class="text-nowrap">{{ accessory.accessories_total|floatformat:2 }} ₽</td>
+                                        <td>
+                                            <select class="form-select form-select-sm text-white {% if accessory.payment_status == 'not paid' %}bg-danger{% else %}bg-success{% endif %}"
+                                                    hx-post="{% url 'update_payment_status_accessories' accessory.id %}"
+                                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                                    name="payment_status_accessories" style="min-width:90px">
+                                                {% for value, label in accessory.PAYMENT_STATUS_CHOICES %}
+                                                <option value="{{ value }}" {% if accessory.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
                     </div>
+                </div>
                 {% endfor %}
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Навигация по страницам -->
-{% if page_obj.has_other_pages %}
-    <div class="container my-4">
-        <nav aria-label="Постраничная навигация">
-            <ul class="pagination justify-content-center mb-0">
-
-                {% if page_obj.has_previous %}
+<!-- Пагинация -->
+<div class="container my-4">
+    {% if page_obj.paginator.count > 0 %}
+    <p class="text-muted small text-center mb-2">
+        Показано {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }} заказов
+    </p>
+    {% endif %}
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Пагинация">
+        <ul class="pagination justify-content-center flex-wrap mb-0">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&payment_status={{ filters.payment_status }}">&laquo;</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                        <a class="page-link" href="?page={{ num }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&payment_status={{ filters.payment_status }}">{{ num }}</a>
                     </li>
                 {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&raquo;</span>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-{% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&payment_status={{ filters.payment_status }}">&raquo;</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 
 {% endblock %}

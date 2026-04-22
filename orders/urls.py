@@ -5,7 +5,7 @@ from .views import (welcome, CustomerListView, orders, add_customer, customers_w
                     new_orders_all_customers, completed_orders_all_customers, in_progress_orders_all_customers, not_paid_orders_all_customers, paid_orders_all_customers,
                     customer_update, add_order_accessories,
                     customers_remove, update_payment_status_accessories, add_order_for_orders,
-                    scan_drawings, scan_confirm)
+                    scan_drawings, scan_confirm, export_orders_excel)
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -37,6 +37,8 @@ urlpatterns = [
     path('completed_orders_all/', completed_orders_all_customers, name='completed_orders'),
     path('not_paid_orders_all_customers/', not_paid_orders_all_customers, name='not_paid_orders'),
     path('paid_orders_all_customers/', paid_orders_all_customers, name='paid_orders'),
+
+    path('customer/<int:customer_id>/export/excel/', export_orders_excel, name='export_orders_excel'),
 
     path('orders/scan/', scan_drawings, name='scan_drawings'),
     path('orders/scan/<int:customer_id>/', scan_drawings, name='scan_drawings_customer'),

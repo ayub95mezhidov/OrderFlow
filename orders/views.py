@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
@@ -35,22 +36,10 @@ class CustomerListView(LoginRequiredMixin, ListView):
         queryset = Customer.objects.filter(user=self.request.user)
 
         if search_query:
-            results = []
-            search_lower = search_query.lower()
-
-            for customer in queryset:
-                customer_name_lower = (customer.full_name or '').lower()
-                customer_phone_lower = (customer.phone_number or '').lower()
-
-                if (search_lower in customer_name_lower or
-                        search_lower in customer_phone_lower):
-                    results.append(customer.id)
-
-            # Возвращаем отфильтрованный queryset
-            return Customer.objects.filter(
-                id__in=results,
-                user=self.request.user
-            ).order_by('full_name')
+            queryset = queryset.filter(
+                Q(full_name__icontains=search_query) |
+                Q(phone_number__icontains=search_query)
+            )
 
         return queryset.order_by('full_name')
 
@@ -114,9 +103,28 @@ def customer_update(request, customer_id):
 def orders(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id, user=request.user)
 
+    # Фильтры из GET-параметров
+    payment_filter = request.GET.get('payment_status', '')
+    status_filter = request.GET.get('status', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
     # Получаем заказы и сортируем по дате (новые сверху)
     orders_list = Order.objects.filter(user=request.user, customer=customer).order_by('-order_date')
     accessories_list = Accessories.objects.filter(user=request.user, customer=customer).order_by('-order_date')
+
+    # Применяем фильтры
+    if payment_filter:
+        orders_list = orders_list.filter(payment_status=payment_filter)
+        accessories_list = accessories_list.filter(payment_status=payment_filter)
+    if status_filter:
+        orders_list = orders_list.filter(status=status_filter)
+    if date_from:
+        orders_list = orders_list.filter(order_date__date__gte=date_from)
+        accessories_list = accessories_list.filter(order_date__date__gte=date_from)
+    if date_to:
+        orders_list = orders_list.filter(order_date__date__lte=date_to)
+        accessories_list = accessories_list.filter(order_date__date__lte=date_to)
 
     # Пагинация
     paginator = Paginator(orders_list, 50)
@@ -201,206 +209,173 @@ def orders(request, customer_id):
         'debt': total_debt,
         'accessories_with_debt': accessories_with_debt,
         'page_obj': page_obj,
+        'filters': {
+            'payment_status': payment_filter,
+            'status': status_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+        },
+        'order_status_choices': Order.STATUS_CHOICES,
+        'payment_status_choices': Order.PAYMENT_STATUS_CHOICES,
     }
     return render(request, 'orders/orders.html', context)
+
+def _apply_date_filters(qs, date_from, date_to):
+    if date_from:
+        qs = qs.filter(order_date__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(order_date__date__lte=date_to)
+    return qs
+
+def _build_grouped_orders(orders_qs, accessories_qs=None):
+    grouped = OrderedDict()
+    total_amount = {}
+    for order in orders_qs:
+        key = order.order_date.strftime('%d.%m.%y')
+        if key not in grouped:
+            grouped[key] = {'orders': [], 'accessories': []}
+            total_amount[key] = 0
+        total_amount[key] += order.total_sum
+        grouped[key]['orders'].append(order)
+    if accessories_qs:
+        for acc in accessories_qs:
+            key = acc.order_date.strftime('%d.%m.%y')
+            if key not in grouped:
+                grouped[key] = {'orders': [], 'accessories': []}
+                total_amount[key] = 0
+            total_amount[key] += acc.accessories_total
+            grouped[key]['accessories'].append(acc)
+    return grouped, total_amount
 
 # Все заказы отфильтрованные по статусу НОВЫЕ
 @login_required(login_url='/users/login/')
 def new_orders_all_customers(request):
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    payment_filter = request.GET.get('payment_status', '')
+
     orders_list = Order.objects.filter(user=request.user, status='new').order_by('-order_date')
+    orders_list = _apply_date_filters(orders_list, date_from, date_to)
+    if payment_filter:
+        orders_list = orders_list.filter(payment_status=payment_filter)
 
-    # Пагинация
     paginator = Paginator(orders_list, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Используем вместо orders_list только заказы текущей страницы
-    orders_list = page_obj.object_list
-
-    # Группируем заказы по дате
-    grouped_orders = OrderedDict()
-    total_amount = {}  # Общая сумма за каждую дату
-    for order in orders_list:
-        date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += order.total_sum
-        grouped_orders[date_key]['orders'].append(order)
-
-    price_settings = PriceSettings.objects.all()
+    page_obj = paginator.get_page(request.GET.get('page'))
+    grouped_orders, total_amount = _build_grouped_orders(page_obj.object_list)
 
     context = {
         'title': 'OrderFlow - Новые заказы',
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
-        'price_settings': price_settings,
         'page_obj': page_obj,
+        'filters': {'date_from': date_from, 'date_to': date_to, 'payment_status': payment_filter, 'status': 'new'},
+        'payment_status_choices': Order.PAYMENT_STATUS_CHOICES,
+        'show_payment_filter': True,
     }
-
     return render(request, 'orders/new_orders_all.html', context)
 
 # Все заказы отфильтрованные по статусу В РАБОТЕ
 @login_required(login_url='/users/login/')
 def in_progress_orders_all_customers(request):
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    payment_filter = request.GET.get('payment_status', '')
+
     orders_list = Order.objects.filter(user=request.user, status='in_progress').order_by('-order_date')
+    orders_list = _apply_date_filters(orders_list, date_from, date_to)
+    if payment_filter:
+        orders_list = orders_list.filter(payment_status=payment_filter)
 
-    # Пагинация
     paginator = Paginator(orders_list, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Используем вместо orders_list только заказы текущей страницы
-    orders_list = page_obj.object_list
-
-    # Группируем заказы по дате
-    grouped_orders = OrderedDict()
-    total_amount = {}  # Общая сумма за каждую дату
-    for order in orders_list:
-        date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += order.total_sum
-        grouped_orders[date_key]['orders'].append(order)
-
-    price_settings = PriceSettings.objects.all()
+    page_obj = paginator.get_page(request.GET.get('page'))
+    grouped_orders, total_amount = _build_grouped_orders(page_obj.object_list)
 
     context = {
-        'title': 'OrderFlow - Заказы',
+        'title': 'OrderFlow - Заказы в работе',
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
-        'price_settings': price_settings,
         'page_obj': page_obj,
+        'filters': {'date_from': date_from, 'date_to': date_to, 'payment_status': payment_filter, 'status': 'in_progress'},
+        'payment_status_choices': Order.PAYMENT_STATUS_CHOICES,
+        'show_payment_filter': True,
     }
-
     return render(request, 'orders/new_orders_all.html', context)
 
 # Все заказы отфильтрованные по статусу ЗАВЕРШЕННЫЕ
 @login_required(login_url='/users/login/')
 def completed_orders_all_customers(request):
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    payment_filter = request.GET.get('payment_status', '')
+
     orders_list = Order.objects.filter(user=request.user, status='completed').order_by('-order_date')
+    orders_list = _apply_date_filters(orders_list, date_from, date_to)
+    if payment_filter:
+        orders_list = orders_list.filter(payment_status=payment_filter)
 
-    # Пагинация
     paginator = Paginator(orders_list, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Используем вместо orders_list только заказы текущей страницы
-    orders_list = page_obj.object_list
-
-    # Группируем заказы по дате
-    grouped_orders = OrderedDict()
-    total_amount = {}  # Общая сумма за каждую дату
-    for order in orders_list:
-        date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += order.total_sum
-        grouped_orders[date_key]['orders'].append(order)
-
-    price_settings = PriceSettings.objects.all()
+    page_obj = paginator.get_page(request.GET.get('page'))
+    grouped_orders, total_amount = _build_grouped_orders(page_obj.object_list)
 
     context = {
-        'title': 'OrderFlow - Завершенные заказы',
+        'title': 'OrderFlow - Завершённые заказы',
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
-        'price_settings': price_settings,
         'page_obj': page_obj,
+        'filters': {'date_from': date_from, 'date_to': date_to, 'payment_status': payment_filter, 'status': 'completed'},
+        'payment_status_choices': Order.PAYMENT_STATUS_CHOICES,
+        'show_payment_filter': True,
     }
-
     return render(request, 'orders/new_orders_all.html', context)
 
 # Все заказы отфильтрованные по статусу НЕ ОПЛАЧЕННЫЕ
 @login_required(login_url='/users/login/')
 def not_paid_orders_all_customers(request):
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
     orders_list = Order.objects.filter(user=request.user, payment_status='not paid').order_by('-order_date')
     accessories_list = Accessories.objects.filter(user=request.user, payment_status='not paid').order_by('-order_date')
+    orders_list = _apply_date_filters(orders_list, date_from, date_to)
+    accessories_list = _apply_date_filters(accessories_list, date_from, date_to)
 
-    # Пагинация
     paginator = Paginator(orders_list, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Используем вместо orders_list только заказы текущей страницы
-    orders_list = page_obj.object_list
-
-    # Группируем заказы по дате
-    grouped_orders = OrderedDict()
-    total_amount = {}  # Общая сумма за каждую дату
-    for order in orders_list:
-        date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += order.total_sum
-        grouped_orders[date_key]['orders'].append(order)
-
-    for accessory in accessories_list:
-        date_key = accessory.order_date.strftime('%d.%m.%y')
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += accessory.accessories_total
-        grouped_orders[date_key]['accessories'].append(accessory)
-
-
-    price_settings = PriceSettings.objects.all()
+    page_obj = paginator.get_page(request.GET.get('page'))
+    grouped_orders, total_amount = _build_grouped_orders(page_obj.object_list, accessories_list)
 
     context = {
         'title': 'OrderFlow - Не оплаченные заказы',
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
-        'price_settings': price_settings,
         'page_obj': page_obj,
+        'filters': {'date_from': date_from, 'date_to': date_to, 'payment_status': 'not paid', 'status': ''},
+        'show_payment_filter': False,
     }
-
     return render(request, 'orders/new_orders_all.html', context)
 
 # Все заказы отфильтрованные по статусу ОПЛАЧЕННЫЕ
 @login_required(login_url='/users/login/')
 def paid_orders_all_customers(request):
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
     orders_list = Order.objects.filter(user=request.user, payment_status='paid').order_by('-order_date')
     accessories_list = Accessories.objects.filter(user=request.user, payment_status='paid').order_by('-order_date')
+    orders_list = _apply_date_filters(orders_list, date_from, date_to)
+    accessories_list = _apply_date_filters(accessories_list, date_from, date_to)
 
-    # Пагинация
     paginator = Paginator(orders_list, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    # Используем вместо orders_list только заказы текущей страницы
-    orders_list = page_obj.object_list
-
-    # Группируем заказы по дате
-    grouped_orders = OrderedDict()
-    total_amount = {}  # Общая сумма за каждую дату
-    for order in orders_list:
-        date_key = order.order_date.strftime('%d.%m.%y')  # Формат 03.05.25
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += order.total_sum
-        grouped_orders[date_key]['orders'].append(order)
-
-    for accessory in accessories_list:
-        date_key = accessory.order_date.strftime('%d.%m.%y')
-        if date_key not in grouped_orders:
-            grouped_orders[date_key] = {'orders': [], 'accessories': []}
-            total_amount[date_key] = 0
-        total_amount[date_key] += accessory.accessories_total
-        grouped_orders[date_key]['accessories'].append(accessory)
-
-    price_settings = PriceSettings.objects.all()
+    page_obj = paginator.get_page(request.GET.get('page'))
+    grouped_orders, total_amount = _build_grouped_orders(page_obj.object_list, accessories_list)
 
     context = {
         'title': 'OrderFlow - Оплаченные заказы',
         'grouped_orders': grouped_orders,
         'total_amount': total_amount,
-        'price_settings': price_settings,
         'page_obj': page_obj,
+        'filters': {'date_from': date_from, 'date_to': date_to, 'payment_status': 'paid', 'status': ''},
+        'show_payment_filter': False,
     }
-
     return render(request, 'orders/new_orders_all.html', context)
 
 # Обновляет статус заказа
@@ -433,11 +408,12 @@ def update_order_status(request, order_id):
         return JsonResponse({'success': False, 'error': 'Order not found'})
 
 # Обновляет статус платежа заказа
+@login_required
 @require_POST
 def update_payment_status(request, order_id):
     """Обновляет статус платежа закза потолков"""
-    order = Order.objects.get(id=order_id)
-    wallet = Wallet.objects.filter(user=request.user).last()
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
 
     new_status = request.POST.get('payment_status')
     today = date.today()
@@ -475,15 +451,16 @@ def update_payment_status(request, order_id):
                 profit = Profit.objects.get(user=request.user, date=today)
                 profit.total -= profit_amount
                 profit.save()
-            except Profit.DoesNotExist as ex:
-                print(ex)
+            except Profit.DoesNotExist:
+                pass
 
             # Из истории дохода мы вычеслеям сумму заказа
             from finance.models import CategoryIncome
             obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Потолки', color='Синий')
             income = Income.objects.filter(user=request.user, title=obj).last()
-            income.total_sum -= order.total_sum
-            income.save()
+            if income:
+                income.total_sum -= order.total_sum
+                income.save()
 
         # Подсчитывает долг клиента
         customer = order.customer
@@ -505,8 +482,8 @@ def update_payment_status(request, order_id):
 @require_POST
 def update_payment_status_accessories(request, accessories_id):
     """Обновляет статус платежа закза комплектующих"""
-    accessories = Accessories.objects.get(id=accessories_id)
-    wallet = Wallet.objects.filter(user=request.user).last()
+    accessories = get_object_or_404(Accessories, id=accessories_id, user=request.user)
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
     new_status = request.POST.get('payment_status_accessories')
 
     today = date.today()
@@ -553,8 +530,9 @@ def update_payment_status_accessories(request, accessories_id):
                 from finance.models import CategoryIncome
                 obj, create = CategoryIncome.objects.get_or_create(user=request.user, title='Комплектующие', color='Красный')
                 income = Income.objects.filter(user=request.user, title=obj).last()
-                income.total_sum -= accessories.accessories_total
-                income.save()
+                if income:
+                    income.total_sum -= accessories.accessories_total
+                    income.save()
 
             # Пересчитываем долг клиента
             customer = accessories.customer
@@ -572,8 +550,9 @@ def update_payment_status_accessories(request, accessories_id):
             return response
 
 
+@login_required
 def customer_debt(request, customer_id):
-    customer = get_object_or_404(Customer, id=customer_id)
+    customer = get_object_or_404(Customer, id=customer_id, user=request.user)
     debt = calculate_customer_debt(customer)
     return HttpResponse(f"{debt:.2f}")
 
@@ -888,3 +867,90 @@ def scan_confirm(request):
         'fabric_size_choices': FABRIC_SIZE_CHOICES,
         'ceiling_type_choices': CEILING_TYPE_CHOICES,
     })
+
+
+@login_required
+def export_orders_excel(request, customer_id):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse as HR
+
+    customer = get_object_or_404(Customer, id=customer_id, user=request.user)
+    orders_qs = Order.objects.filter(user=request.user, customer=customer).order_by('-order_date')
+    accessories_qs = Accessories.objects.filter(user=request.user, customer=customer).order_by('-order_date')
+
+    wb = openpyxl.Workbook()
+
+    title_font = Font(bold=True, size=13)
+    header_font = Font(bold=True, color='FFFFFF')
+    header_fill = PatternFill(fill_type='solid', fgColor='2563EB')
+    center = Alignment(horizontal='center')
+
+    # ── Лист 1: Потолки ──────────────────────────────────────────────────────
+    ws1 = wb.active
+    ws1.title = 'Потолки'
+
+    # Строка с именем клиента
+    ws1.merge_cells('A1:K1')
+    title_cell = ws1['A1']
+    title_cell.value = f'Клиент: {customer.full_name}'
+    title_cell.font = title_font
+    title_cell.alignment = center
+
+    headers = ['Дата', 'Ширина (м)', 'Длина (м)', 'Тип', 'м²', 'Периметр', 'Ткань', 'Цена (₽)', 'Сумма (₽)', 'Оплата', 'Статус']
+    for col, h in enumerate(headers, 1):
+        cell = ws1.cell(row=2, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+
+    for row, order in enumerate(orders_qs, 3):
+        ws1.cell(row=row, column=1, value=order.order_date.strftime('%d.%m.%Y'))
+        ws1.cell(row=row, column=2, value=float(order.width))
+        ws1.cell(row=row, column=3, value=float(order.length))
+        ws1.cell(row=row, column=4, value=order.get_ceiling_type_display())
+        ws1.cell(row=row, column=5, value=float(order.square))
+        ws1.cell(row=row, column=6, value=float(order.perimeter))
+        ws1.cell(row=row, column=7, value=order.get_fabric_size_display())
+        ws1.cell(row=row, column=8, value=float(order.price()))
+        ws1.cell(row=row, column=9, value=float(order.total_sum))
+        ws1.cell(row=row, column=10, value='Оплачено' if order.payment_status == 'paid' else 'Не оплачено')
+        ws1.cell(row=row, column=11, value=order.get_status_display())
+
+    col_widths = [14, 12, 12, 16, 8, 10, 16, 12, 12, 14, 14]
+    for i, w in enumerate(col_widths, 1):
+        ws1.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # ── Лист 2: Комплектующие ─────────────────────────────────────────────────
+    ws2 = wb.create_sheet('Комплектующие')
+
+    # Строка с именем клиента
+    ws2.merge_cells('A1:E1')
+    title_cell2 = ws2['A1']
+    title_cell2.value = f'Клиент: {customer.full_name}'
+    title_cell2.font = title_font
+    title_cell2.alignment = center
+
+    headers2 = ['Дата', 'Комплектующие', 'Кол-во', 'Сумма (₽)', 'Оплата']
+    for col, h in enumerate(headers2, 1):
+        cell = ws2.cell(row=2, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+
+    for row, acc in enumerate(accessories_qs, 3):
+        ws2.cell(row=row, column=1, value=acc.order_date.strftime('%d.%m.%Y'))
+        ws2.cell(row=row, column=2, value=str(acc.accessories))
+        ws2.cell(row=row, column=3, value=acc.quantity)
+        ws2.cell(row=row, column=4, value=float(acc.accessories_total))
+        ws2.cell(row=row, column=5, value='Оплачено' if acc.payment_status == 'paid' else 'Не оплачено')
+
+    col_widths2 = [14, 30, 10, 14, 14]
+    for i, w in enumerate(col_widths2, 1):
+        ws2.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    filename = f"orders_{customer.full_name.replace(' ', '_')}.xlsx"
+    response = HR(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
